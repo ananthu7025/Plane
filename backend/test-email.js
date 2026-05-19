@@ -11,7 +11,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const timeout = setTimeout(() => {
+  console.error("❌ Timeout after 5 seconds - Gmail auth unreachable");
+  process.exit(1);
+}, 5000);
+
 transporter.verify((error, success) => {
+  clearTimeout(timeout);
   if (error) {
     console.error("❌ Email auth failed:", error.message);
     process.exit(1);
