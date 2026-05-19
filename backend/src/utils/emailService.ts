@@ -23,8 +23,13 @@ const transporter = nodemailer.createTransport({
     : undefined,
 });
 
-// Verify transporter connection
+// Verify transporter connection (non-blocking with timeout)
+const verifyTimeout = setTimeout(() => {
+  logger.warn("Email transporter verification timeout - using console logging", "EMAIL");
+}, 5000);
+
 transporter.verify((error, success) => {
+  clearTimeout(verifyTimeout);
   if (error) {
     logger.warn("Email transporter verification failed", "EMAIL", error);
     logger.info("Emails will be logged to console instead", "EMAIL");
