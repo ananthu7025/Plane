@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la c:/Users/Anathapadmanabhan/Desktop/backend/drizzle.config.*)",
+      "Bash(npm run type-check)",
+      "Bash(/tmp/type_check_summary.txt:*)",
+      "Bash(ls -la c:/Users/Anathapadmanabhan/Desktop/backend/.env*)",
+      "Bash(/tmp/env_update.txt:*)",
+      "Bash(/tmp/structure_plan.txt:*)",
+      "Bash(wc -l *.md)",
+      "Bash(head -3 *.md)",
+      "Bash(ls -lart *.md docs/*.md)",
+      "Bash(ls -lh docs/*.md DOCUMENTATION.md)",
+      "Read(//c/Users/Anathapadmanabhan/Desktop/backend/**)",
+      "Bash(/c/Users/Anathapadmanabhan/Desktop/backend/FINAL_SUMMARY.md:*)",
+      "Bash(ls -1 *.md)",
+      "Bash(ls -1 docs/*.md)",
+      "Bash(npm run drizzle:generate)",
+      "Bash(npm run db:generate)",
+      "Bash(npm run db:migrate)",
+      "Bash(npm run)",
+      "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -f src/db/migrations/0001_legal_randall_flagg.sql)",
+      "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -f src/db/migrations/0000_good_santa_claus.sql)",
+      "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -c \"SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name=''email_queue'' AND column_name=''subject'';\")"
+    ]
+  }
+}

@@ -1,0 +1,654 @@
+{
+  "info": {
+    "name": "Plane & Prop - Phase 1 & 2: Auth + User Profiles (15 Endpoints)",
+    "description": "Complete Phase 1 (8 Auth endpoints) + Phase 2 (7 User Profile & Admin endpoints): Signup, Verify Email, Signin, Refresh, Signout, Resend OTP, Password Reset, Get Profile, Update Profile, Public Profile, Admin User List, Admin Get User, Admin Update User, Admin Update Status",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "PHASE 1️⃣ - Authentication",
+      "description": "8 Authentication endpoints - Complete auth flow",
+      "item": [
+        {
+          "name": "1️⃣ Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('userId', jsonData.data.userId);",
+                  "    pm.environment.set('userEmail', jsonData.data.email);",
+                  "    pm.environment.set('userName', jsonData.data.fullName);",
+                  "    console.log('✅ User created: ' + jsonData.data.userId);",
+                  "    console.log('📧 Check email for OTP: ' + jsonData.data.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"full_name\": \"Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "description": "Create new user account with email verification\n\n**Password Requirements:**\n- Minimum 8 characters\n- At least 1 uppercase letter\n- At least 1 number\n- At least 1 special character (!@#$%^&*)\n\n**Response:** 201 Created"
+          }
+        },
+        {
+          "name": "2️⃣ Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ Email verified: ' + jsonData.data.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-email"]
+            },
+            "description": "Verify user's email with OTP from email\n\n**Note:** Replace OTP with actual 6-digit code from email\n\n**Response:** 200 OK"
+          }
+        },
+        {
+          "name": "3️⃣ Signin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.environment.set('refreshToken', jsonData.data.refreshToken);",
+                  "    pm.environment.set('userId', jsonData.data.user.id);",
+                  "    pm.environment.set('userRole', jsonData.data.user.role);",
+                  "    console.log('✅ Signed in as: ' + jsonData.data.user.email);",
+                  "    console.log('🔐 Access Token: ' + jsonData.data.accessToken.substring(0, 20) + '...');",
+                  "    console.log('🔄 Refresh Token: ' + jsonData.data.refreshToken.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signin"]
+            },
+            "description": "User login with verified email and password\n\n**Requirements:**\n- Email must be verified\n- Account must be ACTIVE\n\n**Response:** 200 OK with JWT tokens"
+          }
+        },
+        {
+          "name": "4️⃣ Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.environment.set('refreshToken', jsonData.data.refreshToken);",
+                  "    console.log('✅ Token refreshed');",
+                  "    console.log('🔐 New Access Token: ' + jsonData.data.accessToken.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token\n\n**When to use:**\n- Access token is expired (15 minutes)\n- Need new access token without re-login\n\n**Response:** 200 OK with new tokens"
+          }
+        },
+        {
+          "name": "5️⃣ Signout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Signed out successfully');",
+                  "    console.log('🔐 Refresh token revoked');",
+                  "    pm.environment.unset('accessToken');",
+                  "    pm.environment.unset('refreshToken');",
+                  "    pm.environment.unset('userId');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signout"]
+            },
+            "description": "Sign out user and revoke refresh token\n\n**Requirements:**\n- Valid access token in Authorization header\n- Valid refresh token in body\n\n**Response:** 200 OK"
+          }
+        },
+        {
+          "name": "6️⃣ Resend OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ OTP resent to: ' + jsonData.data.email);",
+                  "    console.log('📧 Check email for new verification code');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/resend-otp",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "resend-otp"]
+            },
+            "description": "Resend verification code if user didn't receive original\n\n**Rate Limit:** 3 attempts per email per hour\n\n**Response:** 200 OK with confirmation message"
+          }
+        },
+        {
+          "name": "7️⃣ Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Password reset email sent');",
+                  "    console.log('📧 Check email for reset link (valid for 1 hour)');",
+                  "    console.log('💡 If no email received, wait 5 minutes before resending');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "forgot-password"]
+            },
+            "description": "Initiate password reset flow\n\n**Rate Limit:** 5 attempts per email per day\n\n**Security:** Always returns 200 OK (doesn't leak if email exists)\n\n**Response:** 200 OK with confirmation message"
+          }
+        },
+        {
+          "name": "8️⃣ Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Password reset successfully');",
+                  "    console.log('🔐 All refresh tokens revoked - you must login again');",
+                  "    console.log('📧 Confirmation email sent');",
+                  "    pm.environment.unset('accessToken');",
+                  "    pm.environment.unset('refreshToken');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"token\": \"PASTE_RESET_TOKEN_FROM_EMAIL\",\n  \"newPassword\": \"NewPassword123!\"\n}\n"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "reset-password"]
+            },
+            "description": "Complete password reset using token from email\n\n**Requirements:**\n- Email address\n- Reset token from email (valid for 1 hour)\n- New password (same requirements as signup)\n\n**Side Effects:**\n- All refresh tokens revoked (forces re-login)\n- Confirmation email sent\n\n**Response:** 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PHASE 2️⃣ - User Profiles",
+      "description": "7 User profile endpoints - Get, update profiles + Admin user management",
+      "item": [
+        {
+          "name": "👤 GET Own Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('userProfileId', jsonData.data.id);",
+                  "    console.log('✅ Profile fetched: ' + jsonData.data.profile.fullName);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Get current authenticated user's profile\n\n**Protection:** Requires valid access token\n\n**Response:** 200 OK with full profile details"
+          }
+        },
+        {
+          "name": "✏️ UPDATE Own Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ Profile updated: ' + jsonData.data.fullName);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"bio\": \"Software developer and tech enthusiast\",\n  \"phone\": \"+1234567890\",\n  \"city\": \"San Francisco\",\n  \"country\": \"USA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Update current user's profile information\n\n**Protection:** Requires valid access token\n\n**Fields:** fullName, bio, phone, city, country (all optional)\n\n**Response:** 200 OK with updated profile"
+          }
+        },
+        {
+          "name": "👥 GET Public Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ Public profile fetched: ' + jsonData.data.fullName);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/{{userId}}/public",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "{{userId}}", "public"]
+            },
+            "description": "View public profile of any user (limited info)\n\n**Protection:** None - publicly accessible\n\n**Returns:** fullName, bio, avatar, reputation score, join date\n\n**Response:** 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PHASE 2️⃣ - Admin Management",
+      "description": "4 Admin-only endpoints - Manage all users, change status, etc.",
+      "item": [
+        {
+          "name": "📊 LIST All Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ Users list fetched: ' + jsonData.data.users.length + ' users');",
+                  "    console.log('📄 Page ' + jsonData.data.pagination.page + ' of ' + jsonData.data.pagination.totalPages);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users?page=1&limit=20&status=ACTIVE&role=STUDENT&sort=createdAt&order=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "role",
+                  "value": "STUDENT"
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "order",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "List all users with pagination and filters\n\n**Protection:** Admin only - requires ADMIN role\n\n**Query Parameters:**\n- page: Page number (default 1)\n- limit: Items per page (default 20, max 100)\n- search: Search in email (optional)\n- status: Filter by status - ACTIVE|INACTIVE|SUSPENDED (optional)\n- role: Filter by role - STUDENT|MENTOR|ADMIN (optional)\n- sort: Sort by - createdAt|email|fullName (default createdAt)\n- order: Sort order - asc|desc (default desc)\n\n**Response:** 200 OK with paginated user list"
+          }
+        },
+        {
+          "name": "🔍 GET User (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ User fetched: ' + jsonData.data.email);",
+                  "    console.log('Role: ' + jsonData.data.role);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/USER_ID_HERE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "USER_ID_HERE"]
+            },
+            "description": "Get full profile of any user (admin view)\n\n**Protection:** Admin only - requires ADMIN role\n\n**Note:** Replace USER_ID_HERE with actual UUID\n\n**Response:** 200 OK with complete user info"
+          }
+        },
+        {
+          "name": "✏️ UPDATE User Profile (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ User profile updated');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Name\",\n  \"bio\": \"Updated bio\",\n  \"city\": \"New City\",\n  \"country\": \"New Country\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/USER_ID_HERE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "USER_ID_HERE"]
+            },
+            "description": "Update any user's profile (admin edit)\n\n**Protection:** Admin only - requires ADMIN role\n\n**Note:** Replace USER_ID_HERE with actual UUID\n\n**Fields:** fullName, bio, phone, city, country (all optional)\n\n**Response:** 200 OK with success message"
+          }
+        },
+        {
+          "name": "🚫 CHANGE User Status (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✅ User status changed to: ' + jsonData.data.user.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/USER_ID_HERE/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "USER_ID_HERE", "status"]
+            },
+            "description": "Change user's account status\n\n**Protection:** Admin only - requires ADMIN role\n\n**Note:** Replace USER_ID_HERE with actual UUID\n\n**Status Options:** ACTIVE | INACTIVE | SUSPENDED\n\n**Effects:**\n- ACTIVE: User can login and use platform\n- INACTIVE: User exists but cannot login\n- SUSPENDED: User account suspended (violation, abuse, etc.)\n\n**Response:** 200 OK with updated status"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userRole",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userProfileId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

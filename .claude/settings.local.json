@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create vite@latest client -- --template react-ts)",
+      "Bash(npm install)",
+      "Bash(npm install @reduxjs/toolkit react-redux redux-persist axios zod react-hook-form @hookform/resolvers react-router-dom framer-motion sonner lucide-react next-themes tailwindcss postcss autoprefixer)",
+      "Bash(npm install -D @shadcn-ui/ui class-variance-authority clsx tailwind-merge)",
+      "Bash(npm install class-variance-authority clsx tailwind-merge @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-label @radix-ui/react-separator @radix-ui/react-scroll-area)",
+      "Bash(npx tailwindcss init -p)",
+      "Bash(npm install -D @tailwindcss/postcss)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(for hook in useAuthState useAuthDispatch useIsAuthenticated useCurrentUser useUserRole useHasRole)",
+      "Bash(do echo \"=== $hook ===\")",
+      "Bash(done)",
+      "Bash(npm run seed)",
+      "Bash(npm run db:seed)",
+      "Bash(timeout 5 npm run dev)",
+      "Bash(npm run dev)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 43932 /F)",
+      "Bash(kill -9 43932)",
+      "Bash(npm run type-check)",
+      "Bash(grep -n \"<input\\\\|<textarea\\\\|<select\" /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/auth/*.tsx /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/AdminRoles.tsx /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/AdminStudents.tsx)"
+    ]
+  }
+}
