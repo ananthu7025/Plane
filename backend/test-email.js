@@ -1,30 +1,31 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
 import "dotenv/config";
 
+// Force IPv4 first
+dns.setDefaultResultOrder("ipv4first");
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  family: 4,
+
+  connectionTimeout: 20000,
+  greetingTimeout: 20000,
+  socketTimeout: 20000,
+
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
-const timeout = setTimeout(() => {
-  console.error("❌ Timeout after 5 seconds - Gmail auth unreachable");
-  process.exit(1);
-}, 5000);
-
 transporter.verify((error, success) => {
-  clearTimeout(timeout);
   if (error) {
-    console.error("❌ Email auth failed:", error.message);
-    process.exit(1);
+    console.error("❌ Email auth failed:");
+    console.error(error);
   } else {
     console.log("✅ Email transporter ready!");
-    console.log(`Host: ${process.env.SMTP_HOST}`);
-    console.log(`User: ${process.env.SMTP_USER}`);
-    process.exit(0);
   }
 });
