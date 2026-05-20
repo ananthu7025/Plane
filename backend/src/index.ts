@@ -10,6 +10,7 @@ import userRoutes from "./api/routes/user.js";
 import adminRoutes from "./api/routes/admin.js";
 import rolesRoutes from "./api/routes/roles.js";
 import communityRoutes from "./api/routes/community.js";
+import letterRoutes from "./api/routes/letters.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authMiddleware, optionalAuthMiddleware } from "./middleware/auth.js";
 import { rateLimit, authRateLimit, getRateLimitStats } from "./middleware/rateLimit.js";
@@ -121,6 +122,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", rolesRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/letters", letterRoutes);
 
 // ========== 404 Handler ==========
 app.use("*", (req, res) => {

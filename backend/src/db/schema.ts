@@ -544,3 +544,22 @@ export const bannedUsersRelations = relations(bannedUsers, ({ one }) => ({
   user: one(users, { fields: [bannedUsers.userId], references: [users.id] }),
   bannedByUser: one(users, { fields: [bannedUsers.bannedBy], references: [users.id] }),
 }));
+
+export const studentLettersRelations = relations(studentLetters, ({ one, many }) => ({
+  author: one(users, { fields: [studentLetters.authorId], references: [users.id] }),
+  acknowledgements: many(letterAcknowledgements),
+}));
+
+export const letterAcknowledgementsRelations = relations(
+  letterAcknowledgements,
+  ({ one }) => ({
+    letter: one(studentLetters, {
+      fields: [letterAcknowledgements.letterId],
+      references: [studentLetters.id],
+    }),
+    user: one(users, {
+      fields: [letterAcknowledgements.userId],
+      references: [users.id],
+    }),
+  })
+);
