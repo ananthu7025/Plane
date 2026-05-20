@@ -11,6 +11,9 @@ import {
   clearSuccessMessage,
   setMyLettersStatus,
   setMyLettersPage,
+  createNewLetter,
+  resubmitLetter,
+  deleteLetter,
 } from "@/store/slices/letterSlice";
 import {
   Dialog,
@@ -45,7 +48,7 @@ export default function StudentLetters() {
   });
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { creatingLetter } = useAppSelector((state) => state.letters);
 
   // Toast notifications
   useEffect(() => {
@@ -115,18 +118,14 @@ export default function StudentLetters() {
                 </DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={form.handleSubmit(async (data) => {
-                setIsSubmitting(true);
-                try {
-                  // TODO: Dispatch createNewLetter action
-                  toast.success("Letter created successfully!");
-                  setIsCreateOpen(false);
-                  form.reset();
-                } catch (err) {
-                  toast.error("Failed to create letter");
-                } finally {
-                  setIsSubmitting(false);
-                }
+              <form onSubmit={form.handleSubmit((data) => {
+                dispatch(
+                  createNewLetter({
+                    subject: data.subject,
+                    content: data.content,
+                    isAnonymous: data.isAnonymous,
+                  }) as any
+                );
               })} className="space-y-4">
                 <InputText
                   label="Subject"
@@ -167,8 +166,8 @@ export default function StudentLetters() {
                   </label>
                 </div>
 
-                <Button type="submit" disabled={isSubmitting} className="w-full">
-                  {isSubmitting ? (
+                <Button type="submit" disabled={creatingLetter} className="w-full">
+                  {creatingLetter ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Submitting...
@@ -236,11 +235,27 @@ export default function StudentLetters() {
                     </div>
                     <div className="flex gap-2">
                       {letter.status === "REJECTED" && (
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Could open a resubmit dialog here
+                            toast.info("Resubmit feature coming soon");
+                          }}
+                        >
                           Resubmit
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this letter?")) {
+                            dispatch(deleteLetter(letter.id) as any);
+                          }
+                        }}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

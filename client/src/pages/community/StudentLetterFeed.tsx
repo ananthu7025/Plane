@@ -12,15 +12,8 @@ import {
   clearSuccessMessage,
   setPublicSearch,
   setPublicSort,
+  toggleLetterLike,
 } from "@/store/slices/letterSlice";
-import { LETTERS_ENDPOINTS } from "@/lib/constants";
-import axiosInstance from "@/api/client";
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  error: { code: string; message: string } | null;
-}
 
 export default function StudentLetterFeed() {
   const dispatch = useAppDispatch();
@@ -207,7 +200,14 @@ export default function StudentLetterFeed() {
                   <p className="text-slate-700 line-clamp-3">{letter.content}</p>
                   <div className="flex items-center gap-4 text-sm text-slate-600">
                     <span>👁️ {letter.viewCount} views</span>
-                    <span>❤️ {letter.acknowledgementCount} likes</span>
+                    <button
+                      onClick={() => dispatch(toggleLetterLike(letter.id) as any)}
+                      className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                        letter.isLiked ? "text-red-500 font-semibold" : "text-slate-600"
+                      }`}
+                    >
+                      ❤️ {letter.acknowledgementCount} likes
+                    </button>
                   </div>
                   <Button variant="outline" size="sm" className="w-full">
                     Read More

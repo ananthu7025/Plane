@@ -15,6 +15,9 @@ import StudentDashboard from "@/pages/student/StudentDashboard";
 import { StudentLayout } from "@/components/layout/StudentLayout";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import EmailVerificationPage from "@/pages/auth/EmailVerificationPage";
+import StudentLetterFeed from "@/pages/community/StudentLetterFeed";
+import StudentLetters from "@/pages/student/StudentLetters";
+import AdminLetters from "@/pages/admin/AdminLetters";
 
 export interface RouteConfig {
   path: string;
@@ -77,6 +80,14 @@ export const studentRoutes: RouteConfig[] = [
         path: "community",
         element: <CommunityFeed />,
       },
+      {
+        path: "letters",
+        element: <StudentLetters />,
+      },
+      {
+        path: "letter-feed",
+        element: <StudentLetterFeed />,
+      },
     ],
   },
 ];
@@ -103,6 +114,10 @@ export const adminRoutes: RouteConfig[] = [
       {
         path: "community",
         element: <AdminCommunity />,
+      },
+      {
+        path: "letters",
+        element: <AdminLetters />,
       },
     ],
   },
