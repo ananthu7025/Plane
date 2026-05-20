@@ -160,6 +160,15 @@ export function signOut(refreshToken: string) {
     } finally {
       // Always clear credentials (whether API succeeds or fails)
       dispatch(clearCredentials());
+
+      // Explicitly clear persisted auth data from localStorage
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem("persist:auth");
+        } catch {
+          // Silently fail if localStorage access fails
+        }
+      }
     }
   };
 }
@@ -219,6 +228,16 @@ export function resetPassword(payload: {
     // Clear all auth tokens after successful password reset
     // Backend revokes all refresh tokens for security, so force user to re-login
     dispatch(clearCredentials());
+
+    // Explicitly clear persisted auth data from localStorage
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem("persist:auth");
+      } catch {
+        // Silently fail if localStorage access fails
+      }
+    }
+
     return response.data.data;
   };
 }
