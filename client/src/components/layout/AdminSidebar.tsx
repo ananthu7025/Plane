@@ -10,6 +10,7 @@ import {
   Settings,
   ChevronLeft,
   LogOut,
+  FileCheck,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -30,6 +31,12 @@ const navGroups = [
     label: "Community",
     items: [
       { icon: MessageSquare, label: "Community", path: "/admin/community" },
+    ],
+  },
+  {
+    label: "Moderation",
+    items: [
+      { icon: FileCheck, label: "Letters", path: "/admin/letters" },
     ],
   },
 ];

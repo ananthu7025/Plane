@@ -1,6 +1,6 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MessageSquare, LogOut, ChevronLeft, Plane } from "lucide-react";
+import { MessageSquare, LogOut, ChevronLeft, Plane, BookOpen, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +12,8 @@ interface StudentSidebarProps {
 
 const navItems = [
   { icon: MessageSquare, label: "Community", path: "/student/community" },
+  { icon: Mail, label: "Letter Feed", path: "/student/letter-feed" },
+  { icon: BookOpen, label: "My Letters", path: "/student/letters" },
 ];
 
 export function StudentSidebar({
