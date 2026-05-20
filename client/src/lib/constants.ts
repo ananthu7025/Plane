@@ -73,6 +73,24 @@ export const COMMUNITY_ENDPOINTS = {
   GET_BANNED_USERS: '/api/community/admin/banned-users',
 } as const;
 
+export const LETTERS_ENDPOINTS = {
+  // Student Endpoints
+  GET_PUBLIC_LETTERS: '/api/letters',
+  GET_LETTER_DETAIL: (letterId: string) => `/api/letters/${letterId}`,
+  CREATE_LETTER: '/api/letters',
+  RESUBMIT_LETTER: (letterId: string) => `/api/letters/${letterId}/resubmit`,
+  GET_MY_LETTERS: '/api/letters/user/my-letters',
+  TOGGLE_LIKE: (letterId: string) => `/api/letters/${letterId}/acknowledge`,
+  GET_LETTER_VERSIONS: (letterId: string) => `/api/letters/${letterId}/versions`,
+
+  // Admin Endpoints
+  GET_MODERATION_QUEUE: '/api/letters/admin/queue',
+  APPROVE_LETTER: (letterId: string) => `/api/letters/${letterId}/approve`,
+  REJECT_LETTER: (letterId: string) => `/api/letters/${letterId}/reject`,
+  DELETE_LETTER: (letterId: string) => `/api/letters/${letterId}`,
+  GET_LETTER_STATS: '/api/letters/admin/stats',
+} as const;
+
 // Route Paths
 export const ROUTES = {
   HOME: '/',
