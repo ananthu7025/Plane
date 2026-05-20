@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -5,8 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, Plus, Trash2, Send, Eye, Heart } from "lucide-react";
+import { Loader2, Search, Plus, Trash2, Send, Plane, Mail, Heart, Eye } from "lucide-react";
 import {
   fetchPublicLetters,
   fetchMyLetters,
@@ -30,7 +33,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { InputText } from "@/components/ui/input-text";
 import { useForm } from "react-hook-form";
 
 interface CreateLetterForm {
@@ -218,34 +220,41 @@ export default function Letters() {
                 })}
                 className="space-y-4"
               >
-                <InputText
-                  label="Subject"
-                  hookForm={form}
-                  field="subject"
-                  placeholder="Enter letter subject"
-                />
+                {/* Letter-style writing area with typewriter font */}
+                <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-800/30 rounded-lg p-6 space-y-4">
+                  <div className="text-right text-sm text-slate-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Content
-                  </label>
+                  <Input
+                    placeholder="Subject of your letter..."
+                    {...form.register("subject", {
+                      required: "Subject is required",
+                      minLength: { value: 5, message: "Subject must be at least 5 characters" },
+                    })}
+                    className="bg-transparent border-none border-b border-amber-200/50 dark:border-amber-800/30 rounded-none px-0 text-lg focus-visible:ring-0 placeholder:text-slate-400/50"
+                    style={{ fontFamily: "'Courier New', Courier, monospace" }}
+                  />
+                  {form.formState.errors.subject && (
+                    <p className="text-red-600 text-sm">{form.formState.errors.subject.message}</p>
+                  )}
+
                   <Textarea
-                    placeholder="Write your letter content here..."
-                    className="min-h-40"
+                    placeholder="Dear Plane & Prop Community,&#10;&#10;Write your letter here... Share your experiences, gratitude, advice, or stories with fellow aviation enthusiasts.&#10;&#10;Warm regards,&#10;Your name"
                     {...form.register("content", {
                       required: "Content is required",
                       minLength: { value: 20, message: "Content must be at least 20 characters" },
                       maxLength: { value: 10000, message: "Content cannot exceed 10000 characters" },
                     })}
+                    className="bg-transparent border-none min-h-[250px] px-0 focus-visible:ring-0 leading-relaxed placeholder:text-slate-400/40 resize-none"
+                    style={{ fontFamily: "'Courier New', Courier, monospace", lineHeight: "2" }}
                   />
                   {form.formState.errors.content && (
-                    <p className="text-red-600 text-sm mt-1">
-                      {form.formState.errors.content.message}
-                    </p>
+                    <p className="text-red-600 text-sm">{form.formState.errors.content.message}</p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50">
                   <input
                     type="checkbox"
                     {...form.register("isAnonymous")}
@@ -408,14 +417,14 @@ export default function Letters() {
                     <CardContent className="space-y-4">
                       <p className="text-slate-700 line-clamp-3">{letter.content}</p>
                       <div className="flex items-center gap-4 text-sm text-slate-600">
-                        <span>👁️ {letter.viewCount} views</span>
                         <button
                           onClick={() => dispatch(toggleLetterLike(letter.id) as any)}
-                          className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                          className={`flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity ${
                             letter.isLiked ? "text-red-500 font-semibold" : "text-slate-600"
                           }`}
                         >
-                          ❤️ {letter.acknowledgementCount} likes
+                          <Heart className={`w-4 h-4 ${letter.isLiked ? "fill-current" : ""}`} />
+                          {letter.acknowledgementCount} acknowledgements
                         </button>
                       </div>
                       <Button variant="outline" size="sm" className="w-full">
@@ -516,9 +525,9 @@ export default function Letters() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <p className="text-slate-700 line-clamp-2">{letter.content}</p>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
-                        <span>👁️ {letter.viewCount} views</span>
-                        <span>❤️ {letter.acknowledgementCount} likes</span>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Heart className="w-4 h-4" />
+                        <span>{letter.acknowledgementCount} acknowledgements</span>
                       </div>
                     </CardContent>
                   </Card>

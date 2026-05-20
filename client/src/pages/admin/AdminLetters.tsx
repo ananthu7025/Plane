@@ -25,6 +25,7 @@ export default function AdminLetters() {
   const {
     moderationLetters,
     moderationPage,
+    moderationPagination,
     moderationStatus,
     stats,
     loadingModerationQueue,
@@ -37,6 +38,7 @@ export default function AdminLetters() {
 
   // Local UI state
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [viewLetterOpen, setViewLetterOpen] = useState<string | null>(null);
 
   // Toast notifications
   useEffect(() => {
@@ -194,7 +196,12 @@ export default function AdminLetters() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-2 pt-4 border-t">
-                    <Button variant="outline" size="sm" className="text-blue-600">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600"
+                      onClick={() => setViewLetterOpen(letter.id)}
+                    >
                       <Eye className="w-4 h-4 mr-1" />
                       View
                     </Button>
@@ -261,15 +268,58 @@ export default function AdminLetters() {
               Previous
             </Button>
             <span className="py-2 px-4 text-sm text-slate-600">
-              Page {moderationPage}
+              Page {moderationPage} {moderationPagination && `of ${moderationPagination.totalPages}`}
             </span>
             <Button
               variant="outline"
+              disabled={!moderationPagination?.hasMore}
               onClick={() => dispatch(setModerationPage(moderationPage + 1))}
             >
               Next
             </Button>
           </div>
+        )}
+
+        {/* View Letter Dialog */}
+        {viewLetterOpen && (
+          <Dialog open={!!viewLetterOpen} onOpenChange={() => setViewLetterOpen(null)}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+              {moderationLetters.find((l) => l.id === viewLetterOpen) && (
+                <div className="space-y-4">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {moderationLetters.find((l) => l.id === viewLetterOpen)?.subject}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="bg-amber-50/30 dark:bg-amber-950/10 rounded-lg p-6 border border-amber-200/30 dark:border-amber-800/20">
+                    <div className="mb-4">
+                      <p className="text-sm text-slate-600 mb-2">
+                        <strong>From:</strong> {moderationLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Anonymous"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        <strong>Status:</strong>{" "}
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          moderationLetters.find((l) => l.id === viewLetterOpen)?.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : moderationLetters.find((l) => l.id === viewLetterOpen)?.status === "APPROVED"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                        }`}>
+                          {moderationLetters.find((l) => l.id === viewLetterOpen)?.status}
+                        </span>
+                      </p>
+                    </div>
+                    <div
+                      className="whitespace-pre-line leading-relaxed text-slate-700"
+                      style={{ fontFamily: "'Courier New', Courier, monospace", lineHeight: "1.8" }}
+                    >
+                      {moderationLetters.find((l) => l.id === viewLetterOpen)?.content}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         )}
 
         <AdminReasonDialog

@@ -280,7 +280,6 @@ export const studentLetters = pgTable(
     isPublished: boolean("is_published").notNull().default(false),
     status: postStatusEnum("status").notNull().default("PENDING"),
     acknowledgementCount: integer("acknowledgement_count").notNull().default(0),
-    viewCount: integer("view_count").notNull().default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     publishedAt: timestamp("published_at"),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

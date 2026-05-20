@@ -64,7 +64,6 @@ export interface FormattedLetter {
   isAnonymous: boolean;
   isPublished: boolean;
   acknowledgementCount: number;
-  viewCount: number;
   author?: {
     id: string;
     fullName: string;
@@ -138,7 +137,6 @@ async function formatLetter(
     isAnonymous: letter.isAnonymous,
     isPublished: letter.isPublished,
     acknowledgementCount: letter.acknowledgementCount || 0,
-    viewCount: letter.viewCount || 0,
     author,
     coverMediaId: letter.coverMediaId,
     createdAt: letter.createdAt,
@@ -419,15 +417,6 @@ export async function getLetterDetail(
     ) {
       throw new ForbiddenError("You cannot view this letter");
     }
-
-    // Increment view count
-    await db
-      .update(studentLetters)
-      .set({
-        viewCount: (letter.viewCount || 0) + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(studentLetters.id, letterId));
 
     return formatLetter(letter, userId, isAdmin);
   } catch (error) {
@@ -833,8 +822,6 @@ export async function getLetterStats(): Promise<{
   pending: number;
   rejected: number;
   totalLikes: number;
-  totalViews: number;
-  avgViewsPerLetter: number;
   avgLikesPerLetter: number;
 }> {
   try {
@@ -845,9 +832,7 @@ export async function getLetterStats(): Promise<{
         pending: sql<number>`COUNT(CASE WHEN ${studentLetters.status} = 'PENDING' THEN 1 END)`,
         rejected: sql<number>`COUNT(CASE WHEN ${studentLetters.status} = 'REJECTED' THEN 1 END)`,
         totalLikes: sql<number>`COALESCE(SUM(${studentLetters.acknowledgementCount}), 0)`,
-        totalViews: sql<number>`COALESCE(SUM(${studentLetters.viewCount}), 0)`,
         avgLikes: sql<number>`COALESCE(AVG(NULLIF(${studentLetters.acknowledgementCount}, 0)), 0)`,
-        avgViews: sql<number>`COALESCE(AVG(NULLIF(${studentLetters.viewCount}, 0)), 0)`,
       })
       .from(studentLetters);
 
@@ -859,9 +844,6 @@ export async function getLetterStats(): Promise<{
       pending: Number(data.pending) || 0,
       rejected: Number(data.rejected) || 0,
       totalLikes: Number(data.totalLikes) || 0,
-      totalViews: Number(data.totalViews) || 0,
-      avgViewsPerLetter:
-        Number(data.avgViews) || 0,
       avgLikesPerLetter:
         Number(data.avgLikes) || 0,
     };

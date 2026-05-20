@@ -26,7 +26,6 @@ export interface Letter {
   isAnonymous: boolean;
   isPublished: boolean;
   acknowledgementCount: number;
-  viewCount: number;
   isLiked?: boolean;
   author?: {
     id: string;
@@ -54,8 +53,6 @@ export interface LetterStats {
   pending: number;
   rejected: number;
   totalLikes: number;
-  totalViews: number;
-  avgViewsPerLetter: number;
   avgLikesPerLetter: number;
 }
 
