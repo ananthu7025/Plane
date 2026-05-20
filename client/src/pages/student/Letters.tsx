@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, Plus, Trash2, Send, Heart, Eye } from "lucide-react";
+import { Loader2, Search, Plus, Trash2, Send, Heart } from "lucide-react";
 import {
   fetchPublicLetters,
   fetchMyLetters,
@@ -70,6 +70,7 @@ export default function Letters() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("public");
+  const [viewLetterOpen, setViewLetterOpen] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
 
   const form = useForm<CreateLetterForm>({
@@ -314,19 +315,6 @@ export default function Letters() {
               </CardContent>
             </Card>
 
-            <Card className="bg-orange-50 border-orange-100">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Total Views</p>
-                    <div className="text-3xl font-bold text-slate-900">2,114</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                    <Eye className="w-5 h-5 text-orange-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
 
@@ -426,7 +414,12 @@ export default function Letters() {
                           {letter.acknowledgementCount} acknowledgements
                         </button>
                       </div>
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setViewLetterOpen(letter.id)}
+                      >
                         Read More
                       </Button>
                     </CardContent>
@@ -552,6 +545,36 @@ export default function Letters() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* View Letter Dialog */}
+        {viewLetterOpen && (
+          <Dialog open={!!viewLetterOpen} onOpenChange={() => setViewLetterOpen(null)}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+              {publicLetters.find((l) => l.id === viewLetterOpen) && (
+                <div className="space-y-4">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {publicLetters.find((l) => l.id === viewLetterOpen)?.subject}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="bg-amber-50/30 dark:bg-amber-950/10 rounded-lg p-6 border border-amber-200/30 dark:border-amber-800/20">
+                    <div className="mb-4">
+                      <p className="text-sm text-slate-600 mb-2">
+                        <strong>From:</strong> {publicLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Anonymous"}
+                      </p>
+                    </div>
+                    <div
+                      className="whitespace-pre-line leading-relaxed text-slate-700"
+                      style={{ fontFamily: "'Courier New', Courier, monospace", lineHeight: "1.8" }}
+                    >
+                      {publicLetters.find((l) => l.id === viewLetterOpen)?.content}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

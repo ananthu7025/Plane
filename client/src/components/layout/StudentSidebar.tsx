@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageSquare, LogOut, ChevronLeft, Plane, BookOpen } from "lucide-react";

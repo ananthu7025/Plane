@@ -276,7 +276,15 @@ export async function getAllApprovedPosts(params: GetPostsParams) {
     const posts = await db.query.communityPosts.findMany({
       where: whereClause,
       with: {
-        comments: true,
+        comments: {
+          with: {
+            author: {
+              with: {
+                profile: true,
+              },
+            },
+          },
+        },
       },
       orderBy: desc(communityPosts.createdAt),
       limit,
@@ -514,7 +522,15 @@ export async function getUserPosts(
     const posts = await db.query.communityPosts.findMany({
       where: whereClause,
       with: {
-        comments: true,
+        comments: {
+          with: {
+            author: {
+              with: {
+                profile: true,
+              },
+            },
+          },
+        },
       },
       orderBy: desc(communityPosts.createdAt),
       limit,

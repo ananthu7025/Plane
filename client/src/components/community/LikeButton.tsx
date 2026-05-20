@@ -30,9 +30,12 @@ export function LikeButton({
   onToggleLike,
 }: LikeButtonProps) {
   const [isLiked, setIsLiked] = useState(false);
-  const [displayCount, setDisplayCount] = useState(likeCount);
+  const [optimisticDelta, setOptimisticDelta] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [floatingHearts, setFloatingHearts] = useState<string[]>([]);
+
+  // Calculate displayed count from actual likeCount plus any optimistic delta
+  const displayCount = likeCount + optimisticDelta;
 
   const handleClick = async () => {
     if (isAnimating) return;
@@ -41,8 +44,9 @@ export function LikeButton({
 
     // Optimistic update
     const newIsLiked = !isLiked;
+    const delta = newIsLiked ? 1 : -1;
     setIsLiked(newIsLiked);
-    setDisplayCount(displayCount + (newIsLiked ? 1 : -1));
+    setOptimisticDelta(delta);
 
     // Show floating hearts on like
     if (newIsLiked) {
@@ -55,10 +59,12 @@ export function LikeButton({
 
     try {
       await onToggleLike();
+      // Success - clear optimistic delta, server has updated the count
+      setOptimisticDelta(0);
     } catch (err) {
       // Revert on error
       setIsLiked(!newIsLiked);
-      setDisplayCount(likeCount);
+      setOptimisticDelta(0);
     } finally {
       setIsAnimating(false);
     }
