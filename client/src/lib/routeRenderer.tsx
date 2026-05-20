@@ -1,6 +1,7 @@
 import { Route } from "react-router-dom";
 import type { RouteConfig } from "./routeConfig";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
+import { AuthOnlyRoute } from "@/components/common/AuthOnlyRoute";
 
 export function renderRoutes(routes: RouteConfig[]) {
   return routes.map((route) => {
@@ -9,6 +10,8 @@ export function renderRoutes(routes: RouteConfig[]) {
         element={route.element}
         requiredRole={route.requiredRole || "STUDENT"}
       />
+    ) : route.authOnly ? (
+      <AuthOnlyRoute element={route.element} />
     ) : (
       route.element
     );

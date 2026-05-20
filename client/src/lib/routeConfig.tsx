@@ -21,6 +21,7 @@ export interface RouteConfig {
   element: ReactNode;
   children?: RouteConfig[];
   protected?: boolean;
+  authOnly?: boolean;
   requiredRole?: "STUDENT" | "ADMIN";
 }
 
@@ -32,26 +33,32 @@ export const authRoutes: RouteConfig[] = [
   {
     path: ROUTES.LOGIN,
     element: <LoginPage />,
+    authOnly: true,
   },
   {
     path: ROUTES.SIGNUP,
     element: <SignUpPage />,
+    authOnly: true,
   },
   {
     path: ROUTES.VERIFY_EMAIL,
     element: <EmailVerificationPage />,
+    authOnly: true,
   },
   {
     path: ROUTES.FORGOT_PASSWORD,
     element: <ForgotPasswordPage />,
+    authOnly: true,
   },
   {
     path: ROUTES.RESET_PASSWORD,
     element: <ResetPasswordPage />,
+    authOnly: true,
   },
   {
     path: ROUTES.ADMIN_LOGIN,
     element: <LoginPage portalType="admin" />,
+    authOnly: true,
   },
 ];
 
