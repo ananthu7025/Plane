@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { db } from "../db/index.js";
 import { emailQueue as emailQueueTable } from "../db/schema.js";
 import { eq, and, lte, isNull } from "drizzle-orm";
@@ -10,33 +10,8 @@ interface EmailOptions {
   html: string;
 }
 
-// Initialize Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "localhost",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
-  auth: process.env.SMTP_USER
-    ? {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      }
-    : undefined,
-});
-
-// Verify transporter connection (non-blocking with timeout)
-const verifyTimeout = setTimeout(() => {
-  logger.warn("Email transporter verification timeout - using console logging", "EMAIL");
-}, 5000);
-
-transporter.verify((error, success) => {
-  clearTimeout(verifyTimeout);
-  if (error) {
-    logger.warn("Email transporter verification failed", "EMAIL", error);
-    logger.info("Emails will be logged to console instead", "EMAIL");
-  } else {
-    logger.info("Email transporter ready", "EMAIL");
-  }
-});
+// Initialize Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email processor state
 let isProcessing = false;
@@ -281,9 +256,9 @@ async function processEmailQueue(): Promise<void> {
 
     for (const emailRecord of pendingEmails) {
       try {
-        // Check if transporter is available
-        if (!transporter.verify) {
-          // If Nodemailer is not configured, log to console for development
+        // Check if Resend API key is configured
+        if (!process.env.RESEND_API_KEY) {
+          // If Resend is not configured, log to console for development
           logger.info(`[DEV MODE] Email would be sent to: ${emailRecord.recipientEmail}`, "EMAIL", {
             subject: emailRecord.subject,
           });
@@ -301,13 +276,17 @@ async function processEmailQueue(): Promise<void> {
           continue;
         }
 
-        // Send email
-        const info = await transporter.sendMail({
+        // Send email via Resend
+        const response = await resend.emails.send({
           from: process.env.EMAIL_FROM || "noreply@planeprop.com",
           to: emailRecord.recipientEmail,
           subject: emailRecord.subject,
           html: emailRecord.htmlContent,
         });
+
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
 
         // Mark as sent
         await db
@@ -320,7 +299,7 @@ async function processEmailQueue(): Promise<void> {
           .where(eq(emailQueueTable.id, emailRecord.id));
 
         logger.info(`Email sent to ${emailRecord.recipientEmail}`, "EMAIL", {
-          messageId: info.messageId,
+          messageId: response.data?.id,
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -357,7 +336,7 @@ async function processEmailQueue(): Promise<void> {
         );
       }
 
-      // Small delay to avoid overwhelming SMTP server
+      // Small delay to avoid overwhelming API
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   } catch (error) {
@@ -415,12 +394,19 @@ export async function getEmailQueueStatus() {
  */
 export async function sendEmailDirect(options: EmailOptions): Promise<boolean> {
   try {
-    const info = await transporter.sendMail({
+    const response = await resend.emails.send({
       from: process.env.EMAIL_FROM || "noreply@planeprop.com",
-      ...options,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
     });
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+
     logger.info(`Email sent directly to ${options.to}`, "EMAIL", {
-      messageId: info.messageId,
+      messageId: response.data?.id,
     });
     return true;
   } catch (error) {
