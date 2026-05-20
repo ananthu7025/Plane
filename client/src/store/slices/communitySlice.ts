@@ -842,7 +842,6 @@ export function deletePost(postId: string) {
     try {
       await axiosInstance.delete(COMMUNITY_ENDPOINTS.DELETE_POST(postId));
       dispatch(deletePostSuccess(postId));
-      toast.success("Post deleted successfully!");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete post";
@@ -911,7 +910,6 @@ export function deleteReply(postId: string, replyId: string) {
         COMMUNITY_ENDPOINTS.DELETE_REPLY(postId, replyId),
       );
       dispatch(deleteReplySuccess({ postId, replyId }));
-      toast.success("Reply deleted successfully!");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete reply";
@@ -1011,7 +1009,6 @@ export function declinePost(postId: string, reason: string) {
         { reason },
       );
       dispatch(declinePostSuccess(response.data.data));
-      toast.success("Post declined!");
       return response.data.data;
     } catch (error: any) {
       const message =
@@ -1030,7 +1027,6 @@ export function deletePostAdmin(postId: string) {
     try {
       await axiosInstance.delete(COMMUNITY_ENDPOINTS.DELETE_POST_ADMIN(postId));
       dispatch(deletePostAdminSuccess(postId));
-      toast.success("Post deleted!");
       return postId;
     } catch (error: any) {
       const message =
@@ -1096,7 +1092,6 @@ export function deleteReplyAdmin(postId: string, replyId: string) {
         COMMUNITY_ENDPOINTS.DELETE_REPLY_ADMIN(postId, replyId),
       );
       dispatch(deleteReplyAdminSuccess({ postId, replyId }));
-      toast.success("Reply deleted!");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete reply";
@@ -1144,7 +1139,6 @@ export function banUser(userId: string, reason: string) {
         { reason },
       );
       dispatch(banUserSuccess(response.data.data));
-      toast.success("User banned successfully!");
       return response.data.data;
     } catch (error: any) {
       const message =
@@ -1165,7 +1159,6 @@ export function unbanUser(userId: string) {
     try {
       await axiosInstance.put(COMMUNITY_ENDPOINTS.UNBAN_USER(userId));
       dispatch(unbanUserSuccess(userId));
-      toast.success("User unbanned successfully!");
       return userId;
     } catch (error: any) {
       const message =
@@ -1237,7 +1230,6 @@ export function createCategory(data: {
       }
 
       dispatch(createCategorySuccess(categoryData));
-      toast.success("Category created successfully!");
       return categoryData;
     } catch (error: any) {
       const message =
@@ -1259,7 +1251,6 @@ export function deleteCategory(categoryId: number) {
         COMMUNITY_ENDPOINTS.DELETE_CATEGORY(categoryId),
       );
       dispatch(deleteCategorySuccess(categoryId));
-      toast.success("Category deleted successfully!");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete category";

@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { hasFieldError, getFieldErrorMessage } from "./input-utils";
-
-type TextTransformMode = "capitalize" | "uppercase" | "lowercase" | "none";
 
 type InputTextProps<T extends FieldValues> = {
   hookForm: UseFormReturn<T>;
@@ -14,61 +11,33 @@ type InputTextProps<T extends FieldValues> = {
   labelMandatory?: boolean;
   infoText?: string;
   showInfoIcon?: boolean;
-  textTransformMode?: TextTransformMode;
-  onConditionCheck?: (newValue: string, oldValue: string) => boolean;
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
   containerClassName?: string;
   labelClassName?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
-const InputText = React.forwardRef<
-  HTMLInputElement,
-  InputTextProps<any>
->(
-  (
-    {
-      hookForm,
-      field,
-      label,
-      labelMandatory,
-      infoText,
-      showInfoIcon,
-      textTransformMode = "none",
-      onConditionCheck,
-      icon,
-      iconPosition = "left",
-      containerClassName,
-      labelClassName,
-      className,
-      ...props
-    },
-    ref
-  ) => {
+function InputText<T extends FieldValues>({
+  hookForm,
+  field,
+  label,
+  labelMandatory,
+  infoText,
+  showInfoIcon,
+  icon,
+  iconPosition = "left",
+  containerClassName,
+  labelClassName,
+  className,
+  ...props
+}: InputTextProps<T>) {
     const {
       register,
       formState: { errors },
-      setValue,
-      getValues,
     } = hookForm;
 
     const hasError = hasFieldError(errors, field);
     const errorMessage = getFieldErrorMessage(errors, field);
-
-    const textTransformHandler = (value: string) => {
-      switch (textTransformMode) {
-        case "capitalize":
-          return value.length > 0
-            ? value.charAt(0).toUpperCase() + value.slice(1)
-            : value;
-        case "uppercase":
-          return value.toUpperCase();
-        case "lowercase":
-          return value.toLowerCase();
-        default:
-          return value;
-      }
-    };
 
     return (
       <div className={cn("space-y-2", containerClassName)}>
@@ -101,20 +70,8 @@ const InputText = React.forwardRef<
               icon && iconPosition === "right" && "pr-10",
               className
             )}
-            {...register(field, {
-              onChange: (e) => {
-                const oldValue = getValues(field) as string;
-                const newValue = textTransformHandler(e.target.value);
-                if (onConditionCheck && !onConditionCheck(newValue, oldValue)) {
-                  e.preventDefault();
-                  return;
-                }
-
-                setValue(field, newValue as any, { shouldValidate: true });
-              },
-            })}
+            {...register(field, { setValueAs: (value) => value || "" })}
             {...props}
-            ref={ref}
           />
 
           {icon && (
@@ -134,9 +91,6 @@ const InputText = React.forwardRef<
         )}
       </div>
     );
-  }
-);
-
-InputText.displayName = "InputText";
+}
 
 export { InputText };

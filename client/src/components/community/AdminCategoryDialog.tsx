@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { InputText } from "@/components/ui/input-text";
 import { InputTextarea } from "@/components/ui/input-textarea";
 import { createCategorySchema, type CreateCategoryFormData } from "@/lib/schemas";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface AdminCategoryDialogProps {
   isOpen: boolean;
@@ -30,11 +30,19 @@ export function AdminCategoryDialog({
 
   const handleSubmit = (data: CreateCategoryFormData) => {
     onSubmit(data);
-    form.reset();
+    form.reset({
+      name: "",
+      description: "",
+      color: "",
+    });
   };
 
   const handleClose = () => {
-    form.reset();
+    form.reset({
+      name: "",
+      description: "",
+      color: "",
+    });
     onClose();
   };
 
@@ -43,6 +51,7 @@ export function AdminCategoryDialog({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Add Category</DialogTitle>
+          <DialogDescription>Create a new category for organizing content</DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4">
           <InputText

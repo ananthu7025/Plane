@@ -8,7 +8,7 @@ import { InputCheckbox } from "@/components/ui/input-checkbox";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { createPost } from "@/store/slices/communitySlice";
 import type { Category } from "@/store/slices/communitySlice";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 // Validation schema
 const createPostSchema = z.object({
@@ -42,11 +42,21 @@ export function CreatePostDialog({ isOpen, onClose, categories }: CreatePostDial
 
   const handleSubmit = async (data: CreatePostFormData) => {
     try {
+      const categoryId = parseInt(data.categoryId, 10);
+
+      // Validate categoryId is a valid number
+      if (isNaN(categoryId) || categoryId <= 0) {
+        form.setError("categoryId", {
+          message: "Please select a valid category",
+        });
+        return;
+      }
+
       await dispatch(
         createPost({
           title: data.title,
           content: data.content,
-          categoryId: parseInt(data.categoryId, 10),
+          categoryId,
           isAnonymous: data.isAnonymous,
         }) as any
       );
@@ -79,6 +89,7 @@ export function CreatePostDialog({ isOpen, onClose, categories }: CreatePostDial
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Create a New Post</DialogTitle>
+          <DialogDescription>Share your thoughts with the community</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -123,6 +134,7 @@ export function CreatePostDialog({ isOpen, onClose, categories }: CreatePostDial
             hookForm={form}
             field="categoryId"
             label="Category"
+            placeholder="Select a category"
             options={categoryOptions}
             disabled={creatingPost || categories.length === 0}
           />

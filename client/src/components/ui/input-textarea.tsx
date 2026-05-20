@@ -15,25 +15,18 @@ type InputTextareaProps<T extends FieldValues> = {
   labelClassName?: string;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
-const InputTextarea = React.forwardRef<
-  HTMLTextAreaElement,
-  InputTextareaProps<any>
->(
-  (
-    {
-      hookForm,
-      field,
-      label,
-      labelMandatory,
-      infoText,
-      showInfoIcon,
-      containerClassName,
-      labelClassName,
-      className,
-      ...props
-    },
-    ref
-  ) => {
+function InputTextarea<T extends FieldValues>({
+  hookForm,
+  field,
+  label,
+  labelMandatory,
+  infoText,
+  showInfoIcon,
+  containerClassName,
+  labelClassName,
+  className,
+  ...props
+}: InputTextareaProps<T>) {
     const {
       register,
       formState: { errors },
@@ -70,9 +63,10 @@ const InputTextarea = React.forwardRef<
               : "border-input focus-visible:ring-ring",
             className
           )}
-          {...register(field)}
+          {...register(field, {
+            setValueAs: (value) => value || ""
+          })}
           {...props}
-          ref={ref}
         />
 
         {hasError && errorMessage && (
@@ -80,9 +74,6 @@ const InputTextarea = React.forwardRef<
         )}
       </div>
     );
-  }
-);
-
-InputTextarea.displayName = "InputTextarea";
+}
 
 export { InputTextarea };

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git add client/src/store/slices/letterSlice.ts client/src/store/index.ts client/src/lib/constants.ts)",
       "Bash(git commit:*)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Read(//c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/**)",
+      "Bash(fi)"
     ]
   }
 }

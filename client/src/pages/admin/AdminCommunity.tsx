@@ -80,13 +80,10 @@ export function AdminCommunity() {
     "moderate" | "view" | "categories" | "banned"
   >("moderate");
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [declineReasonDialogOpen, setDeclineReasonDialogOpen] = useState<
     string | null
   >(null);
-  const [declineReason, setDeclineReason] = useState("");
   const [deletePostConfirmOpen, setDeletePostConfirmOpen] = useState<
     string | null
   >(null);
@@ -96,7 +93,6 @@ export function AdminCommunity() {
   const [banUserDialogOpen, setBanUserDialogOpen] = useState<string | null>(
     null,
   );
-  const [banReason, setBanReason] = useState("");
 
   // Show toast notifications
   useEffect(() => {
@@ -142,20 +138,31 @@ export function AdminCommunity() {
   const handleApprove = async (postId: string) => {
     try {
       await dispatch(approvePost(postId));
+      // Refresh moderation posts
+      dispatch(
+        getPostsForModeration({
+          page: filters.page,
+          search: searchQuery,
+          status: activeTab !== "all" ? activeTab : undefined,
+        }),
+      );
     } catch (err) {
       console.log(err);
     }
   };
 
-  const handleDecline = async (postId: string) => {
-    if (!declineReason.trim()) {
-      toast.error("Please provide a reason for declining");
-      return;
-    }
+  const handleDecline = async (postId: string, reason: string) => {
     try {
-      await dispatch(declinePost(postId, declineReason));
+      await dispatch(declinePost(postId, reason));
       setDeclineReasonDialogOpen(null);
-      setDeclineReason("");
+      // Refresh moderation posts
+      dispatch(
+        getPostsForModeration({
+          page: filters.page,
+          search: searchQuery,
+          status: activeTab !== "all" ? activeTab : undefined,
+        }),
+      );
     } catch (err) {
       console.log(err);
     }
@@ -164,27 +171,29 @@ export function AdminCommunity() {
   const handleDeletePost = async (postId: string) => {
     try {
       await dispatch(deletePostAdmin(postId));
+      setDeletePostConfirmOpen(null);
+      // Refresh moderation posts
+      dispatch(
+        getPostsForModeration({
+          page: filters.page,
+          search: searchQuery,
+          status: activeTab !== "all" ? activeTab : undefined,
+        }),
+      );
     } catch (err) {
       console.log(err);
     }
   };
 
-  const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) {
-      toast.error("Category name is required");
-      return;
-    }
+  const handleAddCategory = async (name: string, description: string) => {
     try {
       await dispatch(
         createCategory({
-          name: newCategoryName,
-          description: newCategoryDescription,
+          name,
+          description,
         }),
       );
 
-      console.log("Category created successfully");
-      setNewCategoryName("");
-      setNewCategoryDescription("");
       setIsCategoryDialogOpen(false);
       dispatch(getAllCategories());
     } catch (err) {
@@ -200,15 +209,12 @@ export function AdminCommunity() {
     }
   };
 
-  const handleBanUser = async (userId: string) => {
-    if (!banReason.trim()) {
-      toast.error("Please provide a reason for banning");
-      return;
-    }
+  const handleBanUser = async (userId: string, reason: string) => {
     try {
-      await dispatch(banUser(userId, banReason));
+      await dispatch(banUser(userId, reason));
       setBanUserDialogOpen(null);
-      setBanReason("");
+      // Refresh banned users list
+      dispatch(getBannedUsers({ page: filters.page }));
     } catch (err) {
       console.log(err);
     }
@@ -537,9 +543,7 @@ export function AdminCommunity() {
           isOpen={isCategoryDialogOpen}
           onClose={() => setIsCategoryDialogOpen(false)}
           onSubmit={({ name, description }) => {
-            setNewCategoryName(name);
-            setNewCategoryDescription(description || "");
-            handleAddCategory();
+            handleAddCategory(name, description || "");
           }}
           isLoading={creatingCategory}
         />
@@ -551,8 +555,7 @@ export function AdminCommunity() {
           confirmText="Decline"
           onClose={() => setDeclineReasonDialogOpen(null)}
           onSubmit={(reason) => {
-            setDeclineReason(reason);
-            handleDecline(declineReasonDialogOpen || "");
+            handleDecline(declineReasonDialogOpen || "", reason);
           }}
           isLoading={loading}
         />
@@ -564,8 +567,7 @@ export function AdminCommunity() {
           confirmText="Ban User"
           onClose={() => setBanUserDialogOpen(null)}
           onSubmit={(reason) => {
-            setBanReason(reason);
-            handleBanUser(banUserDialogOpen || "");
+            handleBanUser(banUserDialogOpen || "", reason);
           }}
           isLoading={loading}
         />

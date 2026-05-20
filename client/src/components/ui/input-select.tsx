@@ -22,24 +22,20 @@ type InputSelectProps<T extends FieldValues> = {
   labelClassName?: string;
 } & React.SelectHTMLAttributes<HTMLSelectElement>;
 
-const InputSelect = React.forwardRef<HTMLSelectElement, InputSelectProps<any>>(
-  (
-    {
-      hookForm,
-      field,
-      label,
-      options,
-      placeholder,
-      labelMandatory,
-      infoText,
-      showInfoIcon,
-      containerClassName,
-      labelClassName,
-      className,
-      ...props
-    },
-    ref
-  ) => {
+function InputSelect<T extends FieldValues>({
+  hookForm,
+  field,
+  label,
+  options,
+  placeholder,
+  labelMandatory,
+  infoText,
+  showInfoIcon,
+  containerClassName,
+  labelClassName,
+  className,
+  ...props
+}: InputSelectProps<T>) {
     const {
       register,
       formState: { errors },
@@ -77,8 +73,7 @@ const InputSelect = React.forwardRef<HTMLSelectElement, InputSelectProps<any>>(
             className
           )}
           {...props}
-          {...register(field)}
-          ref={ref}
+          {...register(field, { valueAsNumber: false })}
         >
           {placeholder && (
             <option value="" disabled>
@@ -97,9 +92,6 @@ const InputSelect = React.forwardRef<HTMLSelectElement, InputSelectProps<any>>(
         )}
       </div>
     );
-  }
-);
-
-InputSelect.displayName = "InputSelect";
+}
 
 export { InputSelect };

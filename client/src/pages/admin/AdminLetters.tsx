@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { toast } from "sonner";
@@ -15,14 +16,7 @@ import {
   setModerationStatus,
   setModerationPage,
 } from "@/store/slices/letterSlice";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { AdminReasonDialog } from "@/components/community";
 
 export default function AdminLetters() {
   const dispatch = useAppDispatch();
@@ -43,8 +37,6 @@ export default function AdminLetters() {
 
   // Local UI state
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 
   // Toast notifications
   useEffect(() => {
@@ -76,15 +68,9 @@ export default function AdminLetters() {
     dispatch(approveLetter(letterId) as any);
   };
 
-  const handleReject = (letterId: string) => {
-    if (!rejectionReason.trim()) {
-      toast.error("Please provide a rejection reason");
-      return;
-    }
-    setSelectedLetter(letterId);
-    dispatch(rejectLetter(letterId, rejectionReason) as any);
-    setIsRejectDialogOpen(false);
-    setRejectionReason("");
+  const handleReject = async (letterId: string, reason: string) => {
+    dispatch(rejectLetter(letterId, reason) as any);
+    setSelectedLetter(null);
   };
 
   const handleDelete = (letterId: string) => {
@@ -233,58 +219,14 @@ export default function AdminLetters() {
                           )}
                         </Button>
 
-                        <Dialog open={isRejectDialogOpen && selectedLetter === letter.id}
-                          onOpenChange={setIsRejectDialogOpen}>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              setSelectedLetter(letter.id);
-                              setIsRejectDialogOpen(true);
-                            }}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Reject Letter</DialogTitle>
-                              <DialogDescription>
-                                Provide a reason for rejecting this letter. The student will see this reason.
-                              </DialogDescription>
-                            </DialogHeader>
-
-                            <Textarea
-                              placeholder="Enter rejection reason..."
-                              value={rejectionReason}
-                              onChange={(e) => setRejectionReason(e.target.value)}
-                              className="min-h-32"
-                            />
-
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="outline"
-                                onClick={() => setIsRejectDialogOpen(false)}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                disabled={rejectingLetter}
-                                onClick={() => handleReject(letter.id)}
-                              >
-                                {rejectingLetter ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                  </>
-                                ) : (
-                                  "Confirm Rejection"
-                                )}
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setSelectedLetter(letter.id)}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
                       </>
                     )}
 
@@ -329,6 +271,19 @@ export default function AdminLetters() {
             </Button>
           </div>
         )}
+
+        <AdminReasonDialog
+          isOpen={!!selectedLetter}
+          title="Reject Letter"
+          label="Reason for Rejection"
+          placeholder="Explain why this letter is being rejected..."
+          confirmText="Reject"
+          onClose={() => setSelectedLetter(null)}
+          onSubmit={(reason) => {
+            handleReject(selectedLetter || "", reason);
+          }}
+          isLoading={rejectingLetter}
+        />
       </div>
     </div>
   );
