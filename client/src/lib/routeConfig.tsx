@@ -15,8 +15,7 @@ import StudentDashboard from "@/pages/student/StudentDashboard";
 import { StudentLayout } from "@/components/layout/StudentLayout";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import EmailVerificationPage from "@/pages/auth/EmailVerificationPage";
-import StudentLetterFeed from "@/pages/community/StudentLetterFeed";
-import StudentLetters from "@/pages/student/StudentLetters";
+import Letters from "@/pages/student/Letters";
 import AdminLetters from "@/pages/admin/AdminLetters";
 
 export interface RouteConfig {
@@ -82,11 +81,7 @@ export const studentRoutes: RouteConfig[] = [
       },
       {
         path: "letters",
-        element: <StudentLetters />,
-      },
-      {
-        path: "letter-feed",
-        element: <StudentLetterFeed />,
+        element: <Letters />,
       },
     ],
   },
