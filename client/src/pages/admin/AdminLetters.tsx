@@ -31,11 +31,9 @@ export default function AdminLetters() {
   const {
     moderationLetters,
     moderationPage,
-    moderationTotal,
     moderationStatus,
     stats,
     loadingModerationQueue,
-    loadingStats,
     approvingLetter,
     rejectingLetter,
     deletingLetter,

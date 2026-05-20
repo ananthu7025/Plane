@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Plus } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import {
   fetchPublicLetters,
   clearError,
@@ -17,7 +17,6 @@ import {
 
 export default function StudentLetterFeed() {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
   const { topSentinelRef, bottomSentinelRef, setCallbacks } = useInfiniteScroll({
     threshold: 0.5,
     rootMargin: "200px 0px",
@@ -26,8 +25,6 @@ export default function StudentLetterFeed() {
   // Redux state
   const {
     publicLetters,
-    publicPage,
-    publicTotal,
     publicHasMore,
     publicSearch,
     publicSort,
@@ -94,7 +91,7 @@ export default function StudentLetterFeed() {
 
   // Setup infinite scroll
   useEffect(() => {
-    setCallbacks({ onLoadMore: loadMoreLetters });
+    setCallbacks(undefined, loadMoreLetters);
   }, [setCallbacks, loadMoreLetters]);
 
   // Handle search

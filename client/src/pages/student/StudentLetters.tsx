@@ -3,7 +3,6 @@ import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Trash2, Send } from "lucide-react";
 import {
   fetchMyLetters,
@@ -12,7 +11,6 @@ import {
   setMyLettersStatus,
   setMyLettersPage,
   createNewLetter,
-  resubmitLetter,
   deleteLetter,
 } from "@/store/slices/letterSlice";
 import {
@@ -35,7 +33,7 @@ interface CreateLetterForm {
 
 export default function StudentLetters() {
   const dispatch = useAppDispatch();
-  const { myLetters, myLettersPage, myLettersTotal, myLettersStatus, loadingMyLetters, error, successMessage } = useAppSelector(
+  const { myLetters, myLettersPage, myLettersStatus, loadingMyLetters, error, successMessage } = useAppSelector(
     (state) => state.letters
   );
 
