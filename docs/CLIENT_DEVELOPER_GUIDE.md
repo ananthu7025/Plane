@@ -282,58 +282,193 @@ Store
     └── error
 ```
 
-### Auth Slice Pattern
+### Redux Slice Pattern (Plain Thunks)
+
+⚠️ **Important**: This project uses **plain Redux dispatch thunks**, NOT `createAsyncThunk`.
+
+#### authSlice.ts - State + Synchronous Reducers
 
 ```tsx
-// authSlice.ts - State + Reducers + ExtraReducers
 const authSlice = createSlice({
   name: "auth",
-  initialState,
-  reducers: {
-    // Sync actions
-    logout: (state) => { /* ... */ },
+  initialState: {
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
+    isHydrated: false,
+    pendingVerificationEmail: null,
   },
-  extraReducers: (builder) => {
-    // Async thunk handlers
-    builder
-      .addCase(signIn.fulfilled, (state, action) => { /* ... */ })
-      .addCase(signIn.rejected, (state, action) => { /* ... */ });
+  reducers: {
+    // Synchronous actions - directly update state
+    setCredentials: (state, action: PayloadAction<{
+      user: ApiUser;
+      accessToken: string;
+      refreshToken: string;
+    }>) => {
+      state.user = action.payload.user;
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      state.isAuthenticated = true;
+    },
+
+    updateTokens: (state, action: PayloadAction<{
+      accessToken: string;
+      refreshToken: string;
+    }>) => {
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+    },
+
+    clearCredentials: (state) => {
+      state.user = null;
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.isAuthenticated = false;
+    },
+
+    setHydrated: (state) => {
+      state.isHydrated = true;
+    },
+
+    setPendingVerificationEmail: (state, action: PayloadAction<string | null>) => {
+      state.pendingVerificationEmail = action.payload;
+    },
   },
 });
 
-// authThunks.ts - Async Thunks
-export const signIn = createAsyncThunk(
-  "auth/signIn",
-  async (credentials, { rejectWithValue }) => {
-    const response = await apiClient.post("/auth/signin", credentials);
-    return response.data;
-  }
-);
+export const {
+  setCredentials,
+  updateTokens,
+  clearCredentials,
+  setHydrated,
+  setPendingVerificationEmail,
+} = authSlice.actions;
 
-// Usage in components
+export default authSlice.reducer;
+```
+
+#### authSlice.ts - Plain Dispatch Thunks
+
+```tsx
+/**
+ * Plain Redux thunk pattern:
+ * Function → Returns async function → Accepts dispatch
+ * No createAsyncThunk wrapper
+ */
+export function signIn(credentials: SignInRequest) {
+  return async function (dispatch: Dispatch) {
+    try {
+      const response = await axiosInstance.post<ApiResponse<SignInData>>(
+        AUTH_ENDPOINTS.SIGNIN,
+        credentials,
+      );
+      const data = response.data.data;
+
+      // Manually dispatch the synchronous reducer
+      dispatch(
+        setCredentials({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        }),
+      );
+
+      return data; // Return data for component to handle
+    } catch (error: any) {
+      // Manual error handling
+      if (error.response?.data?.error?.code === "UNAUTHORIZED") {
+        dispatch(setPendingVerificationEmail(credentials.email));
+      }
+      throw error; // Component catches with try-catch
+    }
+  };
+}
+
+export function signOut(refreshToken: string) {
+  return async function (dispatch: Dispatch) {
+    try {
+      await axiosInstance.post(AUTH_ENDPOINTS.SIGNOUT, { refreshToken });
+    } finally {
+      // Always clear auth, whether request succeeds or fails
+      dispatch(clearCredentials());
+    }
+  };
+}
+```
+
+#### Usage in Components
+
+```tsx
 const dispatch = useAppDispatch();
-const { user, loading, error } = useAppSelector(state => state.auth);
+const { user, isAuthenticated } = useAppSelector(state => state.auth);
 
-const handleSubmit = async (data) => {
+const handleSubmit = async (data: LoginFormData) => {
   try {
-    const result = await dispatch(signIn(data)).unwrap();
-    // Success
-  } catch (err) {
-    // Error handling
+    // Dispatch returns the thunk function
+    // Call it like a normal async function
+    const result = await dispatch(signIn(data) as any);
+
+    // Handle success
+    toast.success("Logged in successfully!");
+    navigate("/home");
+  } catch (error: any) {
+    // Handle error - component responsible for toast
+    const message = error.response?.data?.error?.message || "Login failed";
+    toast.error(message);
   }
 };
 ```
 
-### Why Not RTK Query?
+#### Key Differences from `createAsyncThunk`:
 
-**Decision**: Use Redux Thunks + Axios instead of RTK Query
+| Aspect | Plain Thunks | createAsyncThunk |
+|--------|--------------|-----------------|
+| **Definition** | Function returning async function | RTK API |
+| **Error Handling** | Manual try-catch | Automatic with rejectWithValue |
+| **Dispatch** | Direct dispatch() calls | Automatic from builder |
+| **Return** | Direct values from thunk | Automatic promise wrapping |
+| **Unwrap** | Not available - use try-catch | Available via .unwrap() |
+| **TypeScript** | Simple type-safe | Complex generic types |
+| **Debugging** | Very clear dispatch flow | RTK magic sometimes obscures flow |
+
+### Why Plain Thunks (Not createAsyncThunk or RTK Query)?
+
+**Decision**: Use plain Redux dispatch thunks + Axios instead of `createAsyncThunk` or RTK Query
 
 **Reasons**:
-1. **Simpler API**: Direct control over state updates
-2. **Token Persistence**: Easier to ensure JWT tokens save to localStorage
-3. **Less Boilerplate**: No onQueryStarted hooks or cache management
-4. **Familiar Pattern**: Async thunks are standard Redux pattern
-5. **Fewer Surprises**: Predictable behavior, easier debugging
+1. **Explicit Control**: Every step is visible - dispatch reducers directly
+2. **Token Persistence**: Easy to verify tokens save to localStorage via redux-persist
+3. **Multiple Operations**: Easy to track separate loading states (list loading vs update loading)
+4. **Error Handling**: Clear try-catch pattern, manual toast notifications
+5. **Debugging**: Direct dispatch trail in Redux DevTools, no RTK magic
+6. **Less Abstraction**: Plain functions return async functions - straightforward to understand
+7. **Team Familiarity**: JavaScript developers understand this pattern intuitively
+
+**Plain Thunks vs createAsyncThunk vs RTK Query**:
+
+| Aspect | Plain Thunks | createAsyncThunk | RTK Query |
+|--------|--------------|-----------------|-----------|
+| Learning curve | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Boilerplate | Minimal | Medium | Minimal |
+| Start/Success/Error | Manual | Automatic | N/A (cache) |
+| Multiple ops | Easy | Harder | Built-in |
+| Debugging | Clear | Moderate | Complex |
+| Token handling | Direct | Direct | RTK magic |
+| Caching | Manual | Manual | Automatic |
+| Real-time updates | Manual | Manual | Built-in |
+
+**When to use Plain Thunks** (this project):
+- ✅ Multiple independent operations per slice
+- ✅ JWT token management
+- ✅ Complex loading states (list vs detail vs update)
+- ✅ Team prefers explicit patterns
+
+**When to consider RTK Query**:
+- ✅ Mostly CRUD operations
+- ✅ Extensive caching needs
+- ✅ Real-time data synchronization
+- ✅ Smaller learning curve for RTK users
 
 ### Persistence
 
@@ -442,6 +577,184 @@ client.interceptors.response.use(
 
 ---
 
+### Advanced Pattern: User Management Slice
+
+For complex slices with multiple operations, use **Start/Success/Error reducers**:
+
+```tsx
+// userManagementSlice.ts
+const userManagementSlice = createSlice({
+  name: "userManagement",
+  initialState: {
+    users: [],
+    pagination: { page: 1, limit: 20, total: 0, hasMore: false, totalPages: 0 },
+    loading: false,
+    selectedUserLoading: false,
+    updating: false,
+    error: null,
+    selectedUserError: null,
+    updateError: null,
+    successMessage: null,
+  },
+  reducers: {
+    // Get all users - Start/Success/Error pattern
+    getAllUsersStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getAllUsersSuccess: (state, action: PayloadAction<GetAllUsersResponse>) => {
+      state.loading = false;
+      state.users = action.payload.users;
+      state.pagination = action.payload.pagination;
+    },
+    getAllUsersError: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    // Get user by ID - Start/Success/Error pattern
+    getUserByIdStart: (state) => {
+      state.selectedUserLoading = true;
+      state.selectedUserError = null;
+    },
+    getUserByIdSuccess: (state, action: PayloadAction<UserProfile>) => {
+      state.selectedUserLoading = false;
+      state.selectedUser = action.payload;
+    },
+    getUserByIdError: (state, action: PayloadAction<string>) => {
+      state.selectedUserLoading = false;
+      state.selectedUserError = action.payload;
+    },
+
+    // Update user - Start/Success/Error pattern
+    updateUserStart: (state) => {
+      state.updating = true;
+      state.updateError = null;
+    },
+    updateUserSuccess: (state, action: PayloadAction<UserProfile>) => {
+      state.updating = false;
+      state.successMessage = "User updated successfully";
+      const index = state.users.findIndex(u => u.id === action.payload.id);
+      if (index !== -1) {
+        state.users[index] = action.payload;
+      }
+    },
+    updateUserError: (state, action: PayloadAction<string>) => {
+      state.updating = false;
+      state.updateError = action.payload;
+    },
+
+    // Utility reducers
+    clearError: (state) => {
+      state.error = null;
+      state.selectedUserError = null;
+      state.updateError = null;
+    },
+    clearSuccessMessage: (state) => {
+      state.successMessage = null;
+    },
+  },
+});
+
+export const {
+  getAllUsersStart,
+  getAllUsersSuccess,
+  getAllUsersError,
+  getUserByIdStart,
+  getUserByIdSuccess,
+  getUserByIdError,
+  updateUserStart,
+  updateUserSuccess,
+  updateUserError,
+  clearError,
+  clearSuccessMessage,
+} = userManagementSlice.actions;
+```
+
+**Thunk Pattern for User Management:**
+
+```tsx
+export function getAllUsers(params: PaginationParams) {
+  return async function (dispatch: Dispatch) {
+    dispatch(getAllUsersStart());
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        USER_MANAGEMENT_ENDPOINTS.GET_ALL_USERS,
+        { params },
+      );
+      const { users, pagination } = response.data.data;
+      dispatch(
+        getAllUsersSuccess({
+          users,
+          pagination: {
+            page: pagination.page,
+            limit: pagination.limit,
+            total: pagination.total,
+            hasMore: pagination.hasMore,
+            totalPages: pagination.totalPages,
+          },
+        }),
+      );
+    } catch (error: any) {
+      const message = error.response?.data?.error?.message || "Failed to fetch users";
+      dispatch(getAllUsersError(message));
+      toast.error(message);
+    }
+  };
+}
+
+export function updateUser(userId: string, data: UpdateProfilePayload) {
+  return async function (dispatch: Dispatch) {
+    dispatch(updateUserStart());
+    try {
+      const response = await axiosInstance.put<ApiResponse<UserProfile>>(
+        USER_MANAGEMENT_ENDPOINTS.UPDATE_USER(userId),
+        data,
+      );
+      dispatch(updateUserSuccess(response.data.data));
+      toast.success("User updated!");
+    } catch (error: any) {
+      const message = error.response?.data?.error?.message || "Failed to update user";
+      dispatch(updateUserError(message));
+      toast.error(message);
+    }
+  };
+}
+```
+
+**Usage in Components:**
+
+```tsx
+const dispatch = useAppDispatch();
+const { users, loading, error, updating } = useAppSelector(state => state.userManagement);
+
+// Load users on mount
+useEffect(() => {
+  dispatch(getAllUsers({ page: 1, limit: 20 }));
+}, []);
+
+// Update user
+const handleUpdate = (userId: string, newData: UpdateProfilePayload) => {
+  dispatch(updateUser(userId, newData));
+  // Success/error handled by toast
+};
+```
+
+#### Why Start/Success/Error Pattern?
+
+✅ **Separate loading states** for different operations
+✅ **Fine-grained error tracking** (which operation failed)
+✅ **Optimistic UI updates** (update list immediately)
+✅ **Better user feedback** (individual operation status)
+✅ **Complex workflows** (some ops fast, some slow)
+
+**Use Cases**:
+- Admin pages with multiple operations (list, view, edit, delete)
+- Pages with dependent data loads
+- Complex forms with multiple submission types
+
+---
+
 ## Admin Pages Flow
 
 ### AdminStudents.tsx Flow
@@ -509,6 +822,159 @@ Success toast → update role.permissions in state
 
 ## Development Patterns
 
+### Pattern 0: Creating a New Redux Slice (Plain Thunks)
+
+When creating a new feature like Letters, follow this template:
+
+**File Structure**:
+```
+store/slices/
+├── letterSlice.ts       # State + reducers
+└── (thunks inline or separate file)
+```
+
+**Template** (letterSlice.ts):
+
+```tsx
+import { createSlice } from "@reduxjs/toolkit";
+import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
+import { axiosInstance } from "@/api/client";
+import { toast } from "sonner";
+
+// Types
+export interface Letter {
+  id: string;
+  subject: string;
+  content: string;
+  author: { id: string; fullName: string };
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
+interface LetterState {
+  letters: Letter[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  loading: boolean;
+  creating: boolean;
+  error: string | null;
+  successMessage: string | null;
+}
+
+const initialState: LetterState = {
+  letters: [],
+  pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+  loading: false,
+  creating: false,
+  error: null,
+  successMessage: null,
+};
+
+// Slice
+const letterSlice = createSlice({
+  name: "letters",
+  initialState,
+  reducers: {
+    // Start/Success/Error reducers
+    getLettersStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getLettersSuccess: (state, action: PayloadAction<{
+      letters: Letter[];
+      pagination: typeof initialState.pagination;
+    }>) => {
+      state.loading = false;
+      state.letters = action.payload.letters;
+      state.pagination = action.payload.pagination;
+    },
+    getLettersError: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    createLetterStart: (state) => {
+      state.creating = true;
+      state.error = null;
+    },
+    createLetterSuccess: (state, action: PayloadAction<Letter>) => {
+      state.creating = false;
+      state.letters.unshift(action.payload);
+      state.successMessage = "Letter created!";
+    },
+    createLetterError: (state, action: PayloadAction<string>) => {
+      state.creating = false;
+      state.error = action.payload;
+    },
+
+    clearError: (state) => {
+      state.error = null;
+    },
+    clearSuccess: (state) => {
+      state.successMessage = null;
+    },
+  },
+});
+
+export const {
+  getLettersStart,
+  getLettersSuccess,
+  getLettersError,
+  createLetterStart,
+  createLetterSuccess,
+  createLetterError,
+  clearError,
+  clearSuccess,
+} = letterSlice.actions;
+
+export default letterSlice.reducer;
+
+// Thunks (Plain Redux thunks - NOT createAsyncThunk)
+export function getLetters(page = 1) {
+  return async function (dispatch: Dispatch) {
+    dispatch(getLettersStart());
+    try {
+      const response = await axiosInstance.get("/letters", {
+        params: { page, limit: 20 },
+      });
+      const { letters, pagination } = response.data.data;
+      dispatch(getLettersSuccess({ letters, pagination }));
+    } catch (error: any) {
+      const message = error.response?.data?.error?.message || "Failed to load letters";
+      dispatch(getLettersError(message));
+      toast.error(message);
+    }
+  };
+}
+
+export function createLetter(data: { subject: string; content: string }) {
+  return async function (dispatch: Dispatch) {
+    dispatch(createLetterStart());
+    try {
+      const response = await axiosInstance.post("/letters", data);
+      const letter = response.data.data;
+      dispatch(createLetterSuccess(letter));
+      toast.success("Letter created!");
+    } catch (error: any) {
+      const message = error.response?.data?.error?.message || "Failed to create letter";
+      dispatch(createLetterError(message));
+      toast.error(message);
+    }
+  };
+}
+```
+
+**Key Points**:
+1. ✅ Use `createSlice` for state + reducers
+2. ✅ Create Start/Success/Error reducer triplets
+3. ✅ Use plain functions that return async functions
+4. ✅ Dispatch reducers manually with `dispatch()`
+5. ✅ Handle errors with try-catch
+6. ✅ Call toast.error/success in thunks
+7. ❌ Don't use `createAsyncThunk`
+8. ❌ Don't use `extraReducers` with async thunks
+
+---
+
 ### Pattern 1: Creating a New Admin Page with Search + Pagination
 
 ```tsx
@@ -548,8 +1014,14 @@ export function NewListPage() {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await dispatch(deleteItem(deleteConfirm.id)).unwrap();
+      // dispatch() returns the thunk function result
+      // No .unwrap() needed with plain thunks
+      await dispatch(deleteItem(deleteConfirm.id));
       setDeleteConfirm(null);
+      // Toast handled by thunk
+    } catch (error) {
+      // Error toast handled by thunk
+      console.error("Delete failed:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -632,11 +1104,16 @@ export function SomePage() {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await dispatch(somethingThunk(data)).unwrap();
+      // dispatch() returns thunk function result
+      // Plain thunk throws on error, succeeds on success
+      await dispatch(somethingThunk(data));
+      // Toast handled by thunk, or:
       toast.success("Success!");
       navigate("/somewhere");
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      // Toast handled by thunk, or handle manually:
+      const message = err?.response?.data?.error?.message || "Something went wrong";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
