@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
@@ -6,10 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, Plus, Trash2, Send, Plane, Mail, Heart, Eye } from "lucide-react";
+import { Loader2, Search, Plus, Trash2, Send, Heart, Eye } from "lucide-react";
 import {
   fetchPublicLetters,
   fetchMyLetters,

@@ -76,6 +76,7 @@ interface LetterSliceState {
   // Moderation queue (admin only)
   moderationLetters: Letter[];
   moderationPage: number;
+  moderationPagination: LetterPagination | null;
   moderationTotal: number;
   moderationStatus: "PENDING" | "APPROVED" | "REJECTED";
   moderationSearch: string;
@@ -124,6 +125,7 @@ const initialState: LetterSliceState = {
   // Moderation queue
   moderationLetters: [],
   moderationPage: 1,
+  moderationPagination: null,
   moderationTotal: 0,
   moderationStatus: "PENDING",
   moderationSearch: "",
@@ -265,6 +267,7 @@ const letterSlice = createSlice({
       state.loadingModerationQueue = false;
       state.moderationLetters = action.payload.letters;
       state.moderationTotal = action.payload.pagination.total;
+      state.moderationPagination = action.payload.pagination;
     },
     getModerationQueueError: (state, action: PayloadAction<string>) => {
       state.loadingModerationQueue = false;
