@@ -59,7 +59,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
 router.post("/:id/resubmit", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
     const { subject, content, coverMediaId } = req.body;
 
     const result = await resubmitLetter(id, userId, {
@@ -116,7 +116,7 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId; // Optional
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     const result = await getLetterDetail(id, userId);
 
@@ -139,7 +139,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 router.post("/:id/acknowledge", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     const result = await toggleLetteLike(id, userId);
 
@@ -191,7 +191,7 @@ router.get("/user/my-letters", authMiddleware, async (req: Request, res: Respons
 router.get("/:id/versions", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     const result = await getLetterVersions(id, userId);
 
@@ -246,7 +246,7 @@ router.get("/admin/queue", authMiddleware, async (req: Request, res: Response) =
 router.put("/:id/approve", authMiddleware, async (req: Request, res: Response) => {
   try {
     // TODO: Add admin role check middleware
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     const result = await approveLetter(id);
 
@@ -269,7 +269,7 @@ router.put("/:id/approve", authMiddleware, async (req: Request, res: Response) =
 router.put("/:id/reject", authMiddleware, async (req: Request, res: Response) => {
   try {
     // TODO: Add admin role check middleware
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
     const { rejectionReason } = req.body;
 
     if (!rejectionReason) {
@@ -297,7 +297,7 @@ router.put("/:id/reject", authMiddleware, async (req: Request, res: Response) =>
 router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     // TODO: Add admin role check middleware
-    const { id } = req.params;
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     await deleteLetter(id);
 

@@ -68,7 +68,7 @@ export interface FormattedLetter {
   author?: {
     id: string;
     fullName: string;
-    avatar?: string;
+    avatar?: string | null;
   } | null;
   authorId?: string; // Only for admins
   coverMediaId?: string | null;
@@ -126,7 +126,7 @@ async function formatLetter(
     author = {
       id: letter.authorId,
       fullName: authorData?.fullName || "Unknown",
-      avatar: authorData?.avatar,
+      avatar: authorData?.avatarMediaId,
     };
   }
 
@@ -172,14 +172,14 @@ function validateLetterContent(subject: string, content: string): void {
   if (!subject || subject.trim().length < 5 || subject.length > 255) {
     throw new ValidationError(
       "Subject must be between 5 and 255 characters",
-      "INVALID_SUBJECT"
+      { field: "subject" }
     );
   }
 
   if (!content || content.trim().length < 20 || content.length > 10000) {
     throw new ValidationError(
       "Content must be between 20 and 10000 characters",
-      "INVALID_CONTENT"
+      { field: "content" }
     );
   }
 }
@@ -264,9 +264,9 @@ export async function resubmitLetter(
     // Only allow resubmit if letter was rejected
     if (letter.status !== "REJECTED") {
       throw new AppError(
-        `Cannot resubmit a letter with status: ${letter.status}`,
+        400,
         "INVALID_LETTER_STATE",
-        400
+        `Cannot resubmit a letter with status: ${letter.status}`
       );
     }
 
@@ -317,55 +317,43 @@ export async function getPublicLetters(
     const limit = Math.min(50, params.limit || 10);
     const offset = (page - 1) * limit;
 
-    // Base query: approved, published, not deleted letters
-    let query = db
-      .select()
-      .from(studentLetters)
-      .where(
-        and(
-          eq(studentLetters.status, "APPROVED"),
-          eq(studentLetters.isPublished, true),
-          isNull(studentLetters.deletedAt)
-        )
-      );
+    // Build where conditions
+    const whereConditions: any[] = [
+      eq(studentLetters.status, "APPROVED"),
+      eq(studentLetters.isPublished, true),
+      isNull(studentLetters.deletedAt),
+    ];
 
-    // Apply search filter if provided
     if (params.search && params.search.trim()) {
       const searchTerm = `%${params.search.trim()}%`;
-      query = query.where(
+      whereConditions.push(
         sql`(${studentLetters.subject} ILIKE ${searchTerm} OR ${studentLetters.content} ILIKE ${searchTerm})`
       );
     }
 
     // Apply sorting
-    const orderBy =
-      params.sortBy === "popular"
-        ? desc(studentLetters.acknowledgementCount)
-        : params.sortBy === "trending"
-          ? [
-              desc(
-                sql`${studentLetters.acknowledgementCount} / (EXTRACT(EPOCH FROM (now() - ${studentLetters.publishedAt})) / 3600 + 1)`
-              ),
-            ]
-          : desc(studentLetters.publishedAt);
+    let orderBy: any;
+    if (params.sortBy === "popular") {
+      orderBy = desc(studentLetters.acknowledgementCount);
+    } else if (params.sortBy === "trending") {
+      orderBy = desc(
+        sql`${studentLetters.acknowledgementCount} / (EXTRACT(EPOCH FROM (now() - ${studentLetters.publishedAt})) / 3600 + 1)`
+      );
+    } else {
+      orderBy = desc(studentLetters.publishedAt);
+    }
 
     // Get total count
     const [{ total }] = await db
       .select({ total: count() })
       .from(studentLetters)
-      .where(
-        and(
-          eq(studentLetters.status, "APPROVED"),
-          eq(studentLetters.isPublished, true),
-          isNull(studentLetters.deletedAt),
-          params.search
-            ? sql`(${studentLetters.subject} ILIKE ${`%${params.search.trim()}%`} OR ${studentLetters.content} ILIKE ${`%${params.search.trim()}%`})`
-            : undefined
-        )
-      );
+      .where(and(...whereConditions));
 
     // Get paginated results
-    const letters = await query
+    const letters = await db
+      .select()
+      .from(studentLetters)
+      .where(and(...whereConditions))
       .orderBy(orderBy)
       .limit(limit)
       .offset(offset);
@@ -853,13 +841,13 @@ export async function getLetterStats(): Promise<{
     const stats = await db
       .select({
         total: count(),
-        approved: sql<number>`COUNT(CASE WHEN status = 'APPROVED' THEN 1 END)`,
-        pending: sql<number>`COUNT(CASE WHEN status = 'PENDING' THEN 1 END)`,
-        rejected: sql<number>`COUNT(CASE WHEN status = 'REJECTED' THEN 1 END)`,
-        totalLikes: sql<number>`COALESCE(SUM(acknowledgement_count), 0)`,
-        totalViews: sql<number>`COALESCE(SUM(view_count), 0)`,
-        avgLikes: sql<number>`COALESCE(AVG(NULLIF(acknowledgement_count, 0)), 0)`,
-        avgViews: sql<number>`COALESCE(AVG(NULLIF(view_count, 0)), 0)`,
+        approved: sql<number>`COUNT(CASE WHEN ${studentLetters.status} = 'APPROVED' THEN 1 END)`,
+        pending: sql<number>`COUNT(CASE WHEN ${studentLetters.status} = 'PENDING' THEN 1 END)`,
+        rejected: sql<number>`COUNT(CASE WHEN ${studentLetters.status} = 'REJECTED' THEN 1 END)`,
+        totalLikes: sql<number>`COALESCE(SUM(${studentLetters.acknowledgementCount}), 0)`,
+        totalViews: sql<number>`COALESCE(SUM(${studentLetters.viewCount}), 0)`,
+        avgLikes: sql<number>`COALESCE(AVG(NULLIF(${studentLetters.acknowledgementCount}, 0)), 0)`,
+        avgViews: sql<number>`COALESCE(AVG(NULLIF(${studentLetters.viewCount}, 0)), 0)`,
       })
       .from(studentLetters);
 
@@ -867,9 +855,9 @@ export async function getLetterStats(): Promise<{
 
     return {
       total: data.total,
-      approved: data.approved,
-      pending: data.pending,
-      rejected: data.rejected,
+      approved: Number(data.approved) || 0,
+      pending: Number(data.pending) || 0,
+      rejected: Number(data.rejected) || 0,
       totalLikes: Number(data.totalLikes) || 0,
       totalViews: Number(data.totalViews) || 0,
       avgViewsPerLetter:
