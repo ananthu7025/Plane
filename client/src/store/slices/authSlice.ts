@@ -126,11 +126,13 @@ export function signIn(credentials: SignInRequest) {
           refreshToken: data.refreshToken,
         }),
       );
-      toast.success("Signed in successfully");
       return data;
     } catch (error: any) {
-      const message = error.response?.data?.error?.message || "Login failed";
-      toast.error(message);
+      // Store email if verification needed
+      if (error.response?.data?.error?.code === "UNAUTHORIZED" &&
+          error.response?.data?.error?.message?.includes("verify your email")) {
+        dispatch(setPendingVerificationEmail(credentials.email));
+      }
       throw error;
     }
   };

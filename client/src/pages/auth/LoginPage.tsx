@@ -65,21 +65,13 @@ export default function LoginPage({
 
     try {
       const result = await dispatch(signIn(data) as any);
-
-      toast.success("Welcome back, Aviator!");
-
-      if (result.user.role === "ADMIN") {
-        navigate(ROUTES.ADMIN_DASHBOARD);
-      } else {
-        navigate(ROUTES.STUDENT_DASHBOARD);
-      }
+      navigate(result.user.role === "ADMIN" ? ROUTES.ADMIN_DASHBOARD : ROUTES.STUDENT_DASHBOARD);
     } catch (error: unknown) {
       const errorCode = getErrorCode(error);
       const message = getErrorMessage(error);
 
       if (errorCode === "UNAUTHORIZED") {
         if (message.includes("verify your email")) {
-          toast.info("Please verify your email first");
           navigate(ROUTES.VERIFY_EMAIL);
           return;
         }
