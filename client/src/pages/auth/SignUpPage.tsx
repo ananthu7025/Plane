@@ -77,7 +77,7 @@ export default function SignUpPage() {
       );
 
       dispatch(setPendingVerificationEmail(data.email));
-
+      toast.success("Account created. Please verify your email.");
       navigate(ROUTES.VERIFY_EMAIL);
     } catch (error: unknown) {
       const errorCode = getErrorCode(error);

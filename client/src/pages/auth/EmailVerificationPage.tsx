@@ -79,6 +79,7 @@ export default function EmailVerificationPage() {
         }) as any,
       );
 
+      toast.success("Email verified successfully");
       setTimeout(() => {
         navigate(ROUTES.LOGIN);
       }, 1500);

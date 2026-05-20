@@ -44,6 +44,7 @@ export default function ForgotPasswordPage() {
     try {
       (await dispatch(forgotPassword({ email: data.email }))) as any;
 
+      toast.success("Password reset link sent to your email");
       setSubmittedEmail(data.email);
       setSubmitted(true);
 

@@ -2,7 +2,6 @@
 import { axiosInstance } from "@/api/client";
 import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
-import { toast } from "sonner";
 import { AUTH_ENDPOINTS } from "@/lib/constants";
 import type { AuthState } from "@/types/auth";
 import type { ApiUser, SignInData, SignInRequest, SignUpRequest } from "@/types/api";
@@ -143,18 +142,11 @@ export function signIn(credentials: SignInRequest) {
  */
 export function signUp(data: SignUpRequest) {
   return async function () {
-    try {
-      const response = await axiosInstance.post<ApiResponse<any>>(
-        AUTH_ENDPOINTS.SIGNUP,
-        data,
-      );
-      toast.success("Account created. Please verify your email.");
-      return response.data.data;
-    } catch (error: any) {
-      const message = error.response?.data?.error?.message || "Signup failed";
-      toast.error(message);
-      throw error;
-    }
+    const response = await axiosInstance.post<ApiResponse<any>>(
+      AUTH_ENDPOINTS.SIGNUP,
+      data,
+    );
+    return response.data.data;
   };
 }
 
@@ -165,14 +157,9 @@ export function signOut(refreshToken: string) {
   return async function (dispatch: Dispatch) {
     try {
       await axiosInstance.post(AUTH_ENDPOINTS.SIGNOUT, { refreshToken });
+    } finally {
+      // Always clear credentials (whether API succeeds or fails)
       dispatch(clearCredentials());
-      toast.success("Signed out successfully");
-    } catch (error: any) {
-      const message = error.response?.data?.error?.message || "Logout failed";
-      toast.error(message);
-      // Still clear credentials even if API call fails
-      dispatch(clearCredentials());
-      throw error;
     }
   };
 }
@@ -182,19 +169,11 @@ export function signOut(refreshToken: string) {
  */
 export function verifyEmail(payload: { email: string; otp: string }) {
   return async function () {
-    try {
-      const response = await axiosInstance.post<ApiResponse<any>>(
-        AUTH_ENDPOINTS.VERIFY_EMAIL,
-        payload,
-      );
-      toast.success("Email verified successfully");
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Email verification failed";
-      toast.error(message);
-      throw error;
-    }
+    const response = await axiosInstance.post<ApiResponse<any>>(
+      AUTH_ENDPOINTS.VERIFY_EMAIL,
+      payload,
+    );
+    return response.data.data;
   };
 }
 
@@ -203,19 +182,11 @@ export function verifyEmail(payload: { email: string; otp: string }) {
  */
 export function resendOtp(payload: { email: string }) {
   return async function () {
-    try {
-      const response = await axiosInstance.post<ApiResponse<any>>(
-        AUTH_ENDPOINTS.RESEND_OTP,
-        payload,
-      );
-      toast.success("OTP resent to your email");
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Resend OTP failed";
-      toast.error(message);
-      throw error;
-    }
+    const response = await axiosInstance.post<ApiResponse<any>>(
+      AUTH_ENDPOINTS.RESEND_OTP,
+      payload,
+    );
+    return response.data.data;
   };
 }
 
@@ -224,20 +195,11 @@ export function resendOtp(payload: { email: string }) {
  */
 export function forgotPassword(payload: { email: string }) {
   return async function () {
-    try {
-      const response = await axiosInstance.post<ApiResponse<any>>(
-        AUTH_ENDPOINTS.FORGOT_PASSWORD,
-        payload,
-      );
-      toast.success("Password reset link sent to your email");
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message ||
-        "Forgot password request failed";
-      toast.error(message);
-      throw error;
-    }
+    const response = await axiosInstance.post<ApiResponse<any>>(
+      AUTH_ENDPOINTS.FORGOT_PASSWORD,
+      payload,
+    );
+    return response.data.data;
   };
 }
 
@@ -250,21 +212,13 @@ export function resetPassword(payload: {
   newPassword: string;
 }) {
   return async function (dispatch: Dispatch) {
-    try {
-      const response = await axiosInstance.post<ApiResponse<any>>(
-        AUTH_ENDPOINTS.RESET_PASSWORD,
-        payload,
-      );
-      toast.success("Password reset successfully. Please log in with your new password.");
-      // Clear all auth tokens after successful password reset
-      // Backend revokes all refresh tokens for security, so force user to re-login
-      dispatch(clearCredentials());
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Password reset failed";
-      toast.error(message);
-      throw error;
-    }
+    const response = await axiosInstance.post<ApiResponse<any>>(
+      AUTH_ENDPOINTS.RESET_PASSWORD,
+      payload,
+    );
+    // Clear all auth tokens after successful password reset
+    // Backend revokes all refresh tokens for security, so force user to re-login
+    dispatch(clearCredentials());
+    return response.data.data;
   };
 }
