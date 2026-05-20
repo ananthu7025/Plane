@@ -12,6 +12,8 @@ import {
   LogOut,
   FileCheck,
 } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/hooks/redux";
+import { signOut } from "@/store/slices/authSlice";
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -48,8 +50,13 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { refreshToken } = useAppSelector((state) => state.auth);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    if (refreshToken) {
+      await dispatch(signOut(refreshToken) as any);
+    }
     navigate("/admin/login");
   };
 

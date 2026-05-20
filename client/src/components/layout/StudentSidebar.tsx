@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { MessageSquare, LogOut, ChevronLeft, Plane, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAppDispatch, useAppSelector } from "@/hooks/redux";
+import { signOut } from "@/store/slices/authSlice";
 
 interface StudentSidebarProps {
   collapsed: boolean;
@@ -22,8 +24,13 @@ export function StudentSidebar({
 }: StudentSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { refreshToken } = useAppSelector((state) => state.auth);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    if (refreshToken) {
+      await dispatch(signOut(refreshToken) as any);
+    }
     navigate("/login");
   };
 
