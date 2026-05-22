@@ -5,7 +5,7 @@ import * as schema from "./schema.js";
 // Production-ready connection pool configuration
 // Tuned for 5k users/day (~200 req/min sustained)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:root@localhost:5432/planeandprop",
+  connectionString: process.env.DATABASE_URL || "postgresql://root:root@localhost:5432/plane_and_prop",
   // Connection pool sizing
   max: parseInt(process.env.DB_POOL_MAX || "20"), // Max connections: tuned for 5k users
   min: parseInt(process.env.DB_POOL_MIN || "5"), // Min idle connections
