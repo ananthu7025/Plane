@@ -36,7 +36,7 @@ export class UnauthorizedError extends AppError {
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message: string = "Forbidden") {
-    super(403, "FORBIDDEN", message);
+  constructor(message: string = "Forbidden", code: string = "FORBIDDEN", details?: Record<string, any>) {
+    super(403, code, message, details);
   }
 }

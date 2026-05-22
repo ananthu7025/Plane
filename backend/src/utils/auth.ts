@@ -22,6 +22,22 @@ export function generateAccessToken(userId: string): string {
   );
 }
 
+/**
+ * Generate access token with extended user info (role, permissions)
+ */
+export function generateAccessTokenWithRole(
+  userId: string,
+  roleId: number,
+  roleName: string,
+  permissions: string[] = []
+): string {
+  return jwt.sign(
+    { userId, type: "ACCESS", roleId, roleName, permissions },
+    JWT_SECRET,
+    { expiresIn: ACCESS_TOKEN_EXPIRY } as any
+  );
+}
+
 export function generateRefreshToken(userId: string): string {
   return jwt.sign(
     { userId, type: "REFRESH" },
@@ -30,9 +46,17 @@ export function generateRefreshToken(userId: string): string {
   );
 }
 
-export function verifyToken(token: string): { userId: string; type: string } | null {
+export function verifyToken(
+  token: string
+): { userId: string; type: string; roleId?: number; roleName?: string; permissions?: string[] } | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; type: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      userId: string;
+      type: string;
+      roleId?: number;
+      roleName?: string;
+      permissions?: string[];
+    };
     return decoded;
   } catch {
     return null;

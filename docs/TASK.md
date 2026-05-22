@@ -433,6 +433,74 @@ npm run lint         # Run ESLint
   - [ ] Frontend: Group permissions by module for form display
   - [ ] Frontend: Test all CRUD operations end-to-end
 
+- [ ] **Dynamic Role & Permission System** (Backend + Frontend) - ⏳ PLANNED (May 21, 2026)
+
+  **Status**: 🟡 Planning Complete - Ready for Implementation
+  **Full Documentation**: See [ROLETASK.md](ROLETASK.md) for complete implementation guide
+
+  **What This Enables**:
+  - ✨ Create unlimited custom roles (not just STUDENT, MENTOR, ADMIN)
+  - ✨ Create unlimited custom permissions dynamically
+  - ✨ Assign/remove permissions to roles at runtime
+  - ✨ No code redeployment needed for role/permission changes
+  - ✨ Enterprise-ready: Multi-tenant role structures
+
+  **Current State**: 80% infrastructure ready
+  - ✅ Database schema supports dynamic roles/permissions
+  - ✅ API endpoints exist for CRUD operations
+  - ✅ Redux infrastructure in place
+  - ❌ Authorization checks hardcoded to roles (not permissions)
+  - ❌ Permission checking middleware not implemented
+
+  **Implementation Phases**:
+  1. [ ] **Phase 1** (Days 1-2): Create permission utility & middleware - **6-8 hours**
+     - Create permission checking functions
+     - Create permission validation middleware
+     - Update schema to allow dynamic roles
+     - Generate migrations
+
+  2. [ ] **Phase 2** (Days 2-3): Update backend routes - **7-9 hours**
+     - Replace hardcoded role checks with permission checks
+     - Complete role management endpoints
+     - Complete permission management endpoints
+
+  3. [ ] **Phase 3** (Days 3-4): Frontend infrastructure - **5-6 hours**
+     - Add permissions to Redux auth slice
+     - Create permission checking hooks (usePermission, etc.)
+     - Create PermissionGate component
+
+  4. [ ] **Phase 4** (Days 4-5): Admin UI - **8-10 hours**
+     - Wire AdminRoles page to Redux
+     - Create role form & management components
+     - Create permission assigner component
+
+  5. [ ] **Phase 5** (Day 5): Seed data & defaults - **2-3 hours**
+     - Create seed with default roles/permissions
+     - Assign permissions to default roles
+
+  6. [ ] **Phase 6** (Days 5-6): Testing & migration - **9-12 hours**
+     - Backend permission enforcement tests
+     - Frontend permission hook tests
+     - E2E authorization tests
+     - Safe database migration
+
+  **Total Effort**: ~42-48 hours (1-2 weeks solo, 2-3 days with 2 developers)
+
+  **Key Files to Create**:
+  - `backend/src/utils/permissions.ts` - Permission utility functions
+  - `backend/src/middleware/permissions.ts` - Permission checking middleware
+  - `client/src/hooks/usePermission.ts` - Frontend permission hooks
+  - `client/src/components/common/PermissionGate.tsx` - Permission-based rendering
+  - `client/src/components/admin/RoleForm.tsx` - Role creation form
+  - `client/src/components/admin/PermissionAssigner.tsx` - Permission assignment UI
+
+  **Key Files to Modify**:
+  - `backend/src/db/schema.ts` - Remove hardcoded userRoleEnum
+  - `backend/src/middleware/auth.ts` - Include permissions in JWT
+  - `backend/src/api/routes/**/*.ts` - Replace role checks with permission checks
+  - `client/src/store/slices/authSlice.ts` - Add permissions to state
+  - `client/src/pages/admin/AdminRoles.tsx` - Wire to Redux
+
 - [ ] **Community Post Endpoints** (Backend)
   - GET /api/community/posts
   - POST /api/community/posts
@@ -496,6 +564,9 @@ npm run lint         # Run ESLint
 | Community Pages | ✅ Complete (UI) | 100% |
 | **User Profile** | ✅ Complete | 100% |
 | **Admin User Management** | ✅ Complete | 100% |
+| **Roles & Access Management (Basic)** | ✅ Complete | 100% |
+| **Letters Feature** | ✅ Complete (Backend + Frontend UI) | 90% |
+| **Dynamic Role & Permission System** | 🟡 Planning | 0% |
 | **Community CRUD** | ⏳ Pending | 0% |
 | **Admin Features** | ⏳ Pending | 0% |
 | **Testing** | ⏳ Pending | 0% |
@@ -527,9 +598,14 @@ npm run lint         # Run ESLint
 - **Frontend Pattern**: Global Redux store with slice-based organization
 - **Token Refresh**: Automatic via Axios interceptor - users stay logged in seamlessly
 - **Error Handling**: Standardized across both frontend and backend
+- **Role System**: Currently supports 3 hardcoded roles (STUDENT, MENTOR, ADMIN) - Can be made dynamic (see ROLETASK.md)
+- **Permission Infrastructure**: Ready for dynamic permission system implementation - 80% architecture already in place
 
 ---
 
-**Last Updated**: May 18, 2026
-**Project Status**: 🟡 Phase 8 Complete + Phase 2.1 User Profile Complete - Ready for Community Features
-**Next Phase**: Phase 2.2 - Community Post System Implementation
+**Last Updated**: May 21, 2026
+**Project Status**: 🟢 Phase 8 Complete + Letters Feature Complete | 🟡 Dynamic Role System Planned
+**Next Phases**:
+1. Dynamic Role & Permission System (Optional - 1-2 weeks)
+2. Community Post System Implementation
+3. Community Moderation Features

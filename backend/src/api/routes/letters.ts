@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../../middleware/auth.js";
+import { requirePermission } from "../../middleware/permissions.js";
 import { sendSuccess, sendError } from "../../utils/response.js";
 import { AppError } from "../../utils/errors.js";
 import {
@@ -28,7 +29,7 @@ const router = Router();
  * @description Create a new letter
  * @access Private (authenticated users)
  */
-router.post("/", authMiddleware, async (req: Request, res: Response) => {
+router.post("/", authMiddleware, requirePermission("CREATE_LETTER"), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { subject, content, isAnonymous, coverMediaId } = req.body;
@@ -216,9 +217,8 @@ router.get("/:id/versions", authMiddleware, async (req: Request, res: Response) 
  * @access Private (admin only)
  * @query page, limit, status (PENDING|APPROVED|REJECTED)
  */
-router.get("/admin/queue", authMiddleware, async (req: Request, res: Response) => {
+router.get("/admin/queue", authMiddleware, requirePermission("APPROVE_LETTER"), async (req: Request, res: Response) => {
   try {
-    // TODO: Add admin role check middleware
     const { page, limit, status } = req.query;
 
     const result = await getModerationQueue({
@@ -243,9 +243,8 @@ router.get("/admin/queue", authMiddleware, async (req: Request, res: Response) =
  * @description Approve a letter for publication
  * @access Private (admin only)
  */
-router.put("/:id/approve", authMiddleware, async (req: Request, res: Response) => {
+router.put("/:id/approve", authMiddleware, requirePermission("APPROVE_LETTER"), async (req: Request, res: Response) => {
   try {
-    // TODO: Add admin role check middleware
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     const result = await approveLetter(id);
@@ -266,9 +265,8 @@ router.put("/:id/approve", authMiddleware, async (req: Request, res: Response) =
  * @description Reject a letter with reason
  * @access Private (admin only)
  */
-router.put("/:id/reject", authMiddleware, async (req: Request, res: Response) => {
+router.put("/:id/reject", authMiddleware, requirePermission("APPROVE_LETTER"), async (req: Request, res: Response) => {
   try {
-    // TODO: Add admin role check middleware
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
     const { rejectionReason } = req.body;
 
@@ -294,9 +292,8 @@ router.put("/:id/reject", authMiddleware, async (req: Request, res: Response) =>
  * @description Delete a letter (soft delete)
  * @access Private (admin only)
  */
-router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
+router.delete("/:id", authMiddleware, requirePermission("DELETE_LETTER"), async (req: Request, res: Response) => {
   try {
-    // TODO: Add admin role check middleware
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
 
     await deleteLetter(id);
@@ -317,9 +314,8 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
  * @description Get letter statistics
  * @access Private (admin only)
  */
-router.get("/admin/stats", authMiddleware, async (req: Request, res: Response) => {
+router.get("/admin/stats", authMiddleware, requirePermission("APPROVE_LETTER"), async (req: Request, res: Response) => {
   try {
-    // TODO: Add admin role check middleware
     const result = await getLetterStats();
 
     sendSuccess(res, 200, result);

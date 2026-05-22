@@ -123,6 +123,18 @@ export const createPermissionSchema = z.object({
 
 export const updatePermissionSchema = createPermissionSchema.partial();
 
+// Role schemas (dynamic role support)
+export const createRoleSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Role name must be at least 2 characters")
+    .max(100)
+    .regex(/^[a-zA-Z0-9_\- ]+$/, "Role name can only contain letters, numbers, underscores, hyphens, and spaces"),
+  description: z.string().max(500).optional(),
+});
+
+export const updateRoleSchema = createRoleSchema.partial();
+
 export const intIdParamSchema = z.coerce.number().int().positive("ID must be a positive integer");
 
 // Role permission assignment
@@ -130,9 +142,9 @@ export const assignPermissionSchema = z.object({
   permissionId: z.number().int().positive("Permission ID must be a positive integer"),
 });
 
-// User role update schema
+// User role update schema (now supports any role name, not just enum values)
 export const updateUserRoleSchema = z.object({
-  role: z.enum(["STUDENT", "MENTOR", "ADMIN"]).describe("Role must be STUDENT, MENTOR, or ADMIN"),
+  role: z.string().min(2, "Role must be at least 2 characters").max(100),
 });
 
 // Generic validation function

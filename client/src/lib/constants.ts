@@ -29,6 +29,9 @@ export const USER_MANAGEMENT_ENDPOINTS = {
 export const ROLES_ENDPOINTS = {
   GET_ALL_ROLES: '/api/admin/roles',
   GET_ROLE_BY_ID: (roleId: number) => `/api/admin/roles/${roleId}`,
+  CREATE_ROLE: '/api/admin/roles',
+  UPDATE_ROLE: (roleId: number) => `/api/admin/roles/${roleId}`,
+  DELETE_ROLE: (roleId: number) => `/api/admin/roles/${roleId}`,
   GET_ALL_PERMISSIONS: '/api/admin/permissions',
   CREATE_PERMISSION: '/api/admin/permissions',
   UPDATE_PERMISSION: (permissionId: number) => `/api/admin/permissions/${permissionId}`,

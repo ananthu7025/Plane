@@ -361,7 +361,7 @@ export async function removePermissionFromRole(roleId: number, permissionId: num
 /**
  * Update a user's role
  */
-export async function updateUserRole(userId: string, newRole: "STUDENT" | "MENTOR" | "ADMIN") {
+export async function updateUserRole(userId: string, newRole: string) {
   try {
     // Verify user exists
     const user = await db.query.users.findFirst({
@@ -395,5 +395,150 @@ export async function updateUserRole(userId: string, newRole: "STUDENT" | "MENTO
     if (error instanceof NotFoundError) throw error;
     logger.error(`Failed to update role for user ${userId}`, "ROLES_SERVICE", error as Error);
     throw new AppError(500, "USER_ROLE_UPDATE_ERROR", "Failed to update user role");
+  }
+}
+
+/**
+ * Create a new role
+ */
+export async function createRole(name: string, description?: string) {
+  try {
+    // Check if role name already exists
+    const existingRoles = await db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.name, name))
+      .limit(1);
+
+    if (existingRoles.length > 0) {
+      throw new AppError(409, "ROLE_EXISTS", "Role with this name already exists");
+    }
+
+    const result = await db
+      .insert(roles)
+      .values({
+        name,
+        description: description || null,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return {
+      id: result[0].id,
+      name: result[0].name,
+      description: result[0].description,
+      permissions: [],
+      userCount: 0,
+      createdAt: result[0].createdAt,
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    logger.error(`Failed to create role "${name}"`, "ROLES_SERVICE", error as Error);
+    throw new AppError(500, "ROLE_CREATE_ERROR", "Failed to create role");
+  }
+}
+
+/**
+ * Update an existing role
+ */
+export async function updateRole(
+  roleId: number,
+  name?: string,
+  description?: string
+) {
+  try {
+    const roleResult = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, roleId))
+      .limit(1);
+
+    if (roleResult.length === 0) {
+      throw new NotFoundError("Role not found");
+    }
+
+    const role = roleResult[0];
+
+    // If name is being changed, check if new name already exists
+    if (name && name !== role.name) {
+      const existingRoles = await db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(eq(roles.name, name))
+        .limit(1);
+
+      if (existingRoles.length > 0) {
+        throw new AppError(409, "ROLE_EXISTS", "Role with this name already exists");
+      }
+    }
+
+    const updateData: any = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+
+    const result = await db
+      .update(roles)
+      .set(updateData)
+      .where(eq(roles.id, roleId))
+      .returning();
+
+    // Return the updated role with its permissions
+    return getRoleById(roleId);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    logger.error(`Failed to update role ${roleId}`, "ROLES_SERVICE", error as Error);
+    throw new AppError(500, "ROLE_UPDATE_ERROR", "Failed to update role");
+  }
+}
+
+/**
+ * Delete a role
+ * Note: Cannot delete a role that has users assigned to it
+ */
+export async function deleteRole(roleId: number) {
+  try {
+    const role = await db.query.roles.findFirst({
+      where: eq(roles.id, roleId),
+      with: {
+        users: {
+          columns: { id: true },
+        },
+      },
+    });
+
+    if (!role) {
+      throw new NotFoundError("Role not found");
+    }
+
+    // Prevent deletion if role has users
+    if (role.users && role.users.length > 0) {
+      throw new AppError(
+        400,
+        "ROLE_HAS_USERS",
+        `Cannot delete role with ${role.users.length} assigned user(s). Reassign users first.`
+      );
+    }
+
+    // Prevent deletion of default roles (optional safety check)
+    if (["STUDENT", "MENTOR", "ADMIN"].includes(role.name)) {
+      throw new AppError(
+        400,
+        "CANNOT_DELETE_DEFAULT_ROLE",
+        "Cannot delete default system roles"
+      );
+    }
+
+    // Delete role permissions first
+    await db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+
+    // Delete the role
+    await db.delete(roles).where(eq(roles.id, roleId));
+
+    return roleId;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    logger.error(`Failed to delete role ${roleId}`, "ROLES_SERVICE", error as Error);
+    throw new AppError(500, "ROLE_DELETE_ERROR", "Failed to delete role");
   }
 }

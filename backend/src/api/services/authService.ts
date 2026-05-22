@@ -1,9 +1,10 @@
 import { db } from "../../db/index.js";
 import { users, userProfiles, authTokens, roles } from "../../db/schema.js";
 import { eq, and, isNull, desc } from "drizzle-orm";
-import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, generateVerificationToken, hashVerificationToken, verifyOTP, verifyToken } from "../../utils/auth.js";
+import { hashPassword, comparePassword, generateAccessToken, generateAccessTokenWithRole, generateRefreshToken, generateVerificationToken, hashVerificationToken, verifyOTP, verifyToken } from "../../utils/auth.js";
 import { ConflictError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
 import { sendOTPEmail, sendPasswordResetEmail, sendPasswordConfirmationEmail } from "../../utils/emailService.js";
+import { getUserPermissions } from "../../utils/permissions.js";
 
 export async function signup(email: string, password: string, fullName: string) {
   // Check if email already exists
@@ -111,8 +112,16 @@ export async function signin(email: string, password: string) {
     throw new UnauthorizedError("Please verify your email before signing in");
   }
 
-  // Generate tokens
-  const accessToken = generateAccessToken(user.id);
+  // Fetch user's permissions
+  const userPermissions = await getUserPermissions(user.id);
+
+  // Generate tokens with role and permissions
+  const accessToken = generateAccessTokenWithRole(
+    user.id,
+    user.role.id,
+    user.role.name,
+    userPermissions
+  );
   const refreshToken = generateRefreshToken(user.id);
 
   // Hash tokens for storage
@@ -150,6 +159,9 @@ export async function signin(email: string, password: string) {
   return {
     accessToken,
     refreshToken,
+    permissions: userPermissions,
+    roleId: user.role.id,
+    roleName: user.role.name,
     user: {
       id: user.id,
       email: user.email,
@@ -277,8 +289,16 @@ export async function refreshAccessToken(refreshToken: string) {
       throw new UnauthorizedError("User not found or inactive");
     }
 
-    // Generate new tokens
-    const newAccessToken = generateAccessToken(user.id);
+    // Fetch user's permissions (refreshed from DB)
+    const userPermissions = await getUserPermissions(user.id);
+
+    // Generate new tokens with role and permissions
+    const newAccessToken = generateAccessTokenWithRole(
+      user.id,
+      user.role.id,
+      user.role.name,
+      userPermissions
+    );
     const newRefreshToken = generateRefreshToken(user.id);
 
     // Hash new tokens
@@ -315,6 +335,9 @@ export async function refreshAccessToken(refreshToken: string) {
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
+      permissions: userPermissions,
+      roleId: user.role.id,
+      roleName: user.role.name,
       user: {
         id: user.id,
         email: user.email,

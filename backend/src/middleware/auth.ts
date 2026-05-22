@@ -7,6 +7,9 @@ declare global {
     interface Request {
       userId?: string;
       token?: string;
+      roleId?: number;
+      roleName?: string;
+      userPermissions?: string[];
     }
   }
 }
@@ -28,6 +31,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
     req.userId = decoded.userId;
     req.token = token;
+    // Attach role and permissions from token (if available)
+    if (decoded.roleId) req.roleId = decoded.roleId;
+    if (decoded.roleName) req.roleName = decoded.roleName;
+    if (decoded.permissions) req.userPermissions = decoded.permissions;
+
     next();
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -65,6 +73,10 @@ export function optionalAuthMiddleware(req: Request, res: Response, next: NextFu
       if (decoded && decoded.type === "ACCESS") {
         req.userId = decoded.userId;
         req.token = token;
+        // Attach role and permissions from token (if available)
+        if (decoded.roleId) req.roleId = decoded.roleId;
+        if (decoded.roleName) req.roleName = decoded.roleName;
+        if (decoded.permissions) req.userPermissions = decoded.permissions;
       }
     }
     next();

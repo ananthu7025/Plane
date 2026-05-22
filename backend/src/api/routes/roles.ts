@@ -6,6 +6,8 @@ import {
   validate,
   createPermissionSchema,
   updatePermissionSchema,
+  createRoleSchema,
+  updateRoleSchema,
   assignPermissionSchema,
   updateUserRoleSchema,
   intIdParamSchema,
@@ -22,6 +24,9 @@ import {
   assignPermissionToRole,
   removePermissionFromRole,
   updateUserRole,
+  createRole,
+  updateRole,
+  deleteRole,
 } from "../services/rolesService.js";
 
 const router = Router();
@@ -63,6 +68,75 @@ router.get("/roles/:id", authMiddleware, adminMiddleware, async (req: Request, r
       sendError(res, error.statusCode, error.code, error.message, error.details);
     } else {
       console.error("Get role error:", error);
+      sendError(res, 500, "INTERNAL_ERROR", "Internal server error");
+    }
+  }
+});
+
+/**
+ * @route POST /api/admin/roles
+ * @description Create a new role
+ * @access Protected (requires ADMIN role)
+ * @body { name: string, description?: string }
+ */
+router.post("/roles", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const validatedData = validate(createRoleSchema, req.body);
+    const role = await createRole(validatedData.name, validatedData.description);
+    sendSuccess(res, 201, role);
+  } catch (error) {
+    if (error instanceof AppError) {
+      sendError(res, error.statusCode, error.code, error.message, error.details);
+    } else {
+      console.error("Create role error:", error);
+      sendError(res, 500, "INTERNAL_ERROR", "Internal server error");
+    }
+  }
+});
+
+/**
+ * @route PUT /api/admin/roles/:id
+ * @description Update a role
+ * @access Protected (requires ADMIN role)
+ * @param id Role ID (integer)
+ * @body { name?: string, description?: string }
+ */
+router.put("/roles/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const roleId = validate(intIdParamSchema, id);
+    const validatedData = validate(updateRoleSchema, req.body);
+
+    const role = await updateRole(roleId, validatedData.name, validatedData.description);
+    sendSuccess(res, 200, role);
+  } catch (error) {
+    if (error instanceof AppError) {
+      sendError(res, error.statusCode, error.code, error.message, error.details);
+    } else {
+      console.error("Update role error:", error);
+      sendError(res, 500, "INTERNAL_ERROR", "Internal server error");
+    }
+  }
+});
+
+/**
+ * @route DELETE /api/admin/roles/:id
+ * @description Delete a role
+ * @access Protected (requires ADMIN role)
+ * @param id Role ID (integer)
+ */
+router.delete("/roles/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const roleId = validate(intIdParamSchema, id);
+
+    const result = await deleteRole(roleId);
+    sendSuccess(res, 200, result);
+  } catch (error) {
+    if (error instanceof AppError) {
+      sendError(res, error.statusCode, error.code, error.message, error.details);
+    } else {
+      console.error("Delete role error:", error);
       sendError(res, 500, "INTERNAL_ERROR", "Internal server error");
     }
   }

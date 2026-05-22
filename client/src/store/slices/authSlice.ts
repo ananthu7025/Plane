@@ -21,6 +21,9 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isHydrated: false,
   pendingVerificationEmail: null,
+  permissions: [],
+  roleId: undefined,
+  roleName: undefined,
 };
 
 const authSlice = createSlice({
@@ -36,11 +39,17 @@ const authSlice = createSlice({
         user: ApiUser;
         accessToken: string;
         refreshToken: string;
+        permissions?: string[];
+        roleId?: number;
+        roleName?: string;
       }>,
     ) => {
       state.user = action.payload.user;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
+      state.permissions = action.payload.permissions || [];
+      state.roleId = action.payload.roleId;
+      state.roleName = action.payload.roleName;
       state.isAuthenticated = true;
     },
 
@@ -66,6 +75,9 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
+      state.permissions = [];
+      state.roleId = undefined;
+      state.roleName = undefined;
     },
 
     /**
@@ -113,7 +125,7 @@ export default authSlice.reducer;
 export function signIn(credentials: SignInRequest) {
   return async function (dispatch: Dispatch) {
     try {
-      const response = await axiosInstance.post<ApiResponse<SignInData>>(
+      const response = await axiosInstance.post<ApiResponse<SignInData & { permissions?: string[]; roleId?: number; roleName?: string }>>(
         AUTH_ENDPOINTS.SIGNIN,
         credentials,
       );
@@ -123,6 +135,9 @@ export function signIn(credentials: SignInRequest) {
           user: data.user,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
+          permissions: data.permissions || [],
+          roleId: data.roleId,
+          roleName: data.roleName,
         }),
       );
       return data;
@@ -239,5 +254,51 @@ export function resetPassword(payload: {
     }
 
     return response.data.data;
+  };
+}
+
+/**
+ * Refresh access token and permissions (called after permission changes)
+ */
+export function refreshUserPermissions() {
+  return async function (dispatch: Dispatch, getState: () => any) {
+    try {
+      const state = getState();
+      const { refreshToken } = state.auth;
+
+      if (!refreshToken) {
+        return; // No refresh token available, skip
+      }
+
+      const response = await axiosInstance.post<ApiResponse<any>>(
+        AUTH_ENDPOINTS.REFRESH,
+        { refreshToken },
+      );
+
+      if (response.data.success && response.data.data) {
+        const {
+          accessToken,
+          refreshToken: newRefreshToken,
+          permissions,
+          roleId,
+          roleName,
+          user,
+        } = response.data.data;
+
+        dispatch(
+          setCredentials({
+            accessToken,
+            refreshToken: newRefreshToken,
+            permissions: permissions || [],
+            roleId,
+            roleName,
+            user,
+          }),
+        );
+      }
+    } catch (error) {
+      // Silently fail if refresh fails - user can still use their current permissions
+      console.error("[AUTH] Failed to refresh permissions:", error);
+    }
   };
 }

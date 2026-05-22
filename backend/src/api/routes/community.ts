@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../../middleware/auth.js";
 import { adminMiddleware } from "../../middleware/adminAuth.js";
+import { requirePermission, requireAnyPermission } from "../../middleware/permissions.js";
 import { communityRateLimit, rateLimitPresets } from "../../middleware/communityRateLimit.js";
 import { sendSuccess, sendError } from "../../utils/response.js";
 import { validate, createPostSchema, paginationSchema } from "../../utils/validation.js";
@@ -40,7 +41,7 @@ const router = Router();
  * @access Protected (requires valid access token)
  * @body { content, categoryId, isAnonymous? }
  */
-router.post("/posts", authMiddleware, communityRateLimit(rateLimitPresets.createPost), async (req: Request, res: Response) => {
+router.post("/posts", authMiddleware, requirePermission("CREATE_POST"), communityRateLimit(rateLimitPresets.createPost), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const validatedData = validate(createPostSchema, req.body);
@@ -121,7 +122,7 @@ router.get("/posts/:id", async (req: Request, res: Response) => {
  * @access Protected (requires valid access token)
  * @param id Post ID
  */
-router.delete("/posts/:id", authMiddleware, async (req: Request, res: Response) => {
+router.delete("/posts/:id", authMiddleware, requirePermission("DELETE_POST"), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const id = req.params.id as string;
@@ -209,7 +210,7 @@ router.get("/my-posts", authMiddleware, async (req: Request, res: Response) => {
  * @param id Post ID
  * @body { content }
  */
-router.post("/posts/:id/replies", authMiddleware, communityRateLimit(rateLimitPresets.createReply), async (req: Request, res: Response) => {
+router.post("/posts/:id/replies", authMiddleware, requirePermission("CREATE_COMMENT"), communityRateLimit(rateLimitPresets.createReply), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const id = req.params.id as string;
@@ -244,7 +245,7 @@ router.post("/posts/:id/replies", authMiddleware, communityRateLimit(rateLimitPr
  * @param id Post ID
  * @param replyId Reply ID
  */
-router.delete("/posts/:id/replies/:replyId", authMiddleware, async (req: Request, res: Response) => {
+router.delete("/posts/:id/replies/:replyId", authMiddleware, requirePermission("DELETE_COMMENT"), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const id = req.params.id as string;
@@ -305,7 +306,7 @@ router.put("/posts/:id/replies/:replyId/like", authMiddleware, communityRateLimi
  * @access Admin (requires ADMIN role)
  * @query { status?, category?, search?, page?, limit? }
  */
-router.get("/admin/posts", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.get("/admin/posts", authMiddleware, requireAnyPermission(["APPROVE_POST", "REJECT_POST"]), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const validatedParams = validate(paginationSchema, {
@@ -338,7 +339,7 @@ router.get("/admin/posts", authMiddleware, adminMiddleware, async (req: Request,
  * @access Admin (requires ADMIN role)
  * @param id Post ID
  */
-router.put("/admin/posts/:id/approve", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.put("/admin/posts/:id/approve", authMiddleware, requirePermission("APPROVE_POST"), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const id = req.params.id as string;
@@ -367,7 +368,7 @@ router.put("/admin/posts/:id/approve", authMiddleware, adminMiddleware, async (r
  * @param id Post ID
  * @body { reason }
  */
-router.put("/admin/posts/:id/decline", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.put("/admin/posts/:id/decline", authMiddleware, requirePermission("REJECT_POST"), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const id = req.params.id as string;
@@ -401,7 +402,7 @@ router.put("/admin/posts/:id/decline", authMiddleware, adminMiddleware, async (r
  * @access Admin (requires ADMIN role)
  * @param id Post ID
  */
-router.delete("/admin/posts/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.delete("/admin/posts/:id", authMiddleware, requireAnyPermission(["DELETE_POST", "REJECT_POST"]), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const id = req.params.id as string;
@@ -430,7 +431,7 @@ router.delete("/admin/posts/:id", authMiddleware, adminMiddleware, async (req: R
  * @param id Post ID
  * @param replyId Reply ID
  */
-router.delete("/admin/posts/:id/replies/:replyId", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.delete("/admin/posts/:id/replies/:replyId", authMiddleware, requirePermission("DELETE_COMMENT"), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const id = req.params.id as string;
@@ -462,7 +463,7 @@ router.delete("/admin/posts/:id/replies/:replyId", authMiddleware, adminMiddlewa
  * @param userId User ID to ban
  * @body { reason }
  */
-router.post("/admin/users/:userId/ban", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.post("/admin/users/:userId/ban", authMiddleware, requirePermission("BAN_USER"), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const userId = req.params.userId as string;
@@ -496,7 +497,7 @@ router.post("/admin/users/:userId/ban", authMiddleware, adminMiddleware, async (
  * @access Admin (requires ADMIN role)
  * @param userId User ID to unban
  */
-router.put("/admin/users/:userId/unban", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.put("/admin/users/:userId/unban", authMiddleware, requirePermission("UNBAN_USER"), async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).userId;
     const userId = req.params.userId as string;
@@ -524,7 +525,7 @@ router.put("/admin/users/:userId/unban", authMiddleware, adminMiddleware, async 
  * @access Admin (requires ADMIN role)
  * @query { page?, limit? }
  */
-router.get("/admin/banned-users", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.get("/admin/banned-users", authMiddleware, requireAnyPermission(["BAN_USER", "UNBAN_USER"]), async (req: Request, res: Response) => {
   try {
     const validatedParams = validate(paginationSchema, {
       page: req.query.page,
@@ -553,7 +554,7 @@ router.get("/admin/banned-users", authMiddleware, adminMiddleware, async (req: R
  * @access Admin (requires ADMIN role)
  * @body { name, description?, color? }
  */
-router.post("/admin/categories", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.post("/admin/categories", authMiddleware, requirePermission("APPROVE_POST"), async (req: Request, res: Response) => {
   try {
     const { name, description, color } = req.body;
 
@@ -580,7 +581,7 @@ router.post("/admin/categories", authMiddleware, adminMiddleware, async (req: Re
  * @access Admin (requires ADMIN role)
  * @param id Category ID
  */
-router.delete("/admin/categories/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.delete("/admin/categories/:id", authMiddleware, requirePermission("APPROVE_POST"), async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const categoryId = parseInt(id);
@@ -627,7 +628,7 @@ router.get("/categories", async (req: Request, res: Response) => {
  * @access Admin (requires ADMIN role)
  * @query { page?, limit? }
  */
-router.get("/admin/activity", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.get("/admin/activity", authMiddleware, requirePermission("VIEW_USERS"), async (req: Request, res: Response) => {
   try {
     const validatedParams = validate(paginationSchema, {
       page: req.query.page,

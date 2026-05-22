@@ -7,6 +7,7 @@ import SignUpPage from "@/pages/auth/SignUpPage";
 import { AdminRoles } from "@/pages/admin/AdminRoles";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import { AdminStudents } from "@/pages/admin/AdminStudents";
+import { UserManagement } from "@/pages/admin/UserManagement";
 import CommunityFeed from "@/pages/community/CommunityFeed";
 import { AdminCommunity } from "@/pages/admin/AdminCommunity";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -97,6 +98,10 @@ export const adminRoutes: RouteConfig[] = [
       {
         path: "",
         element: <AdminDashboard />,
+      },
+      {
+        path: "users",
+        element: <UserManagement />,
       },
       {
         path: "students",

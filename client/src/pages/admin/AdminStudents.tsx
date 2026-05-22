@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadgeDropdown } from "@/components/admin";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
+import { usePermission } from "@/hooks/usePermission";
+import { Permissions } from "@/lib/permissions";
 import { UserDetailModal } from "../../components/admin/UserDetailModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -38,6 +40,8 @@ export function AdminStudents() {
 
   const { users, pagination, filters, loading, error, successMessage } =
     useAppSelector((state) => state.userManagement);
+
+  const canSuspend = usePermission(Permissions.SUSPEND_USER);
 
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
 
@@ -270,8 +274,10 @@ export function AdminStudents() {
                     <td className="px-6 py-4 text-sm">
                       <StatusBadgeDropdown
                         status={user.status}
-                        onStatusChange={(newStatus) =>
-                          handleStatusChange(user.id, newStatus)
+                        onStatusChange={
+                          canSuspend
+                            ? (newStatus) => handleStatusChange(user.id, newStatus)
+                            : () => {} // No-op if user lacks permission
                         }
                       />
                     </td>

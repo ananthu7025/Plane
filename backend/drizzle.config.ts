@@ -6,7 +6,7 @@ export default {
   out: "./src/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/plane_prop",
+    url: "postgresql://postgres:root@localhost:5432/planeandprop",
   },
   verbose: true,
   strict: true,

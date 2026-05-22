@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
-import { Shield, Edit, Users, MoreVertical, Key } from "lucide-react";
+import { Shield, Edit, Users, MoreVertical, Key, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,9 +25,15 @@ import {
   getAllPermissions,
   assignPermissionToRole,
   removePermissionFromRole,
+  createRole,
+  updateRole,
+  deleteRole,
 } from "@/store/slices/rolesSlice";
 import { PermissionCheckboxGroup } from "@/components/admin";
 import { StatCard } from "@/components/shared";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2 } from "lucide-react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,15 +46,24 @@ const itemVariants = {
 
 export function AdminRoles() {
   const dispatch = useAppDispatch();
-  const { roles, permissions, loading } = useAppSelector(
+  const { roles, permissions, loading, updating } = useAppSelector(
     (state) => state.roles,
   );
 
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<(typeof roles)[0] | null>(
     null,
   );
+  const [roleToDelete, setRoleToDelete] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [roleFormPermissions, setRoleFormPermissions] = useState<number[]>([]);
+  const [roleName, setRoleName] = useState("");
+  const [roleDescription, setRoleDescription] = useState("");
 
   useEffect(() => {
     dispatch(getAllRoles() as never);
@@ -64,10 +80,63 @@ export function AdminRoles() {
     {} as Record<string, typeof permissions>,
   );
 
-  const openEditRole = (role: (typeof roles)[0]) => {
+  const openCreateRoleDialog = () => {
+    setIsCreatingRole(true);
+    setEditingRole(null);
+    setRoleName("");
+    setRoleDescription("");
+    setIsRoleDialogOpen(true);
+  };
+
+  const openEditRoleDialog = (role: (typeof roles)[0]) => {
+    setIsCreatingRole(false);
+    setEditingRole(role);
+    setRoleName(role.name);
+    setRoleDescription(role.description || "");
+    setIsRoleDialogOpen(true);
+  };
+
+  const openEditPermissionsDialog = (role: (typeof roles)[0]) => {
     setEditingRole(role);
     setRoleFormPermissions(role.permissions.map((p) => p.id));
-    setIsRoleDialogOpen(true);
+    setIsPermissionsDialogOpen(true);
+  };
+
+  const handleSaveRole = async () => {
+    if (!roleName.trim()) {
+      toast.error("Role name is required");
+      return;
+    }
+
+    if (isCreatingRole) {
+      dispatch(
+        createRole({
+          name: roleName,
+          description: roleDescription || undefined,
+        }) as never,
+      );
+    } else if (editingRole) {
+      dispatch(
+        updateRole(editingRole.id, {
+          name: roleName,
+          description: roleDescription || undefined,
+        }) as never,
+      );
+    }
+    setIsRoleDialogOpen(false);
+  };
+
+  const openDeleteConfirmation = (roleId: number, roleName: string) => {
+    setRoleToDelete({ id: roleId, name: roleName });
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteRole = () => {
+    if (roleToDelete) {
+      dispatch(deleteRole(roleToDelete.id) as never);
+      setIsDeleteDialogOpen(false);
+      setRoleToDelete(null);
+    }
   };
 
   const togglePermissionCheckbox = (permissionId: number) => {
@@ -93,6 +162,15 @@ export function AdminRoles() {
 
   const closeRoleDialog = () => {
     setIsRoleDialogOpen(false);
+    setIsCreatingRole(false);
+    setEditingRole(null);
+    setRoleName("");
+    setRoleDescription("");
+    setRoleFormPermissions([]);
+  };
+
+  const closePermissionsDialog = () => {
+    setIsPermissionsDialogOpen(false);
     setEditingRole(null);
     setRoleFormPermissions([]);
     // Refetch roles to reflect any permission changes
@@ -119,6 +197,10 @@ export function AdminRoles() {
             Manage user roles and permissions
           </p>
         </div>
+        <Button onClick={openCreateRoleDialog} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Create Role
+        </Button>
       </motion.div>
       <motion.div
         variants={itemVariants}
@@ -167,9 +249,20 @@ export function AdminRoles() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEditRole(role)}>
+                      <DropdownMenuItem onClick={() => openEditRoleDialog(role)}>
                         <Edit className="w-4 h-4 mr-2" />
+                        Edit Role
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEditPermissionsDialog(role)}>
+                        <Key className="w-4 h-4 mr-2" />
                         Edit Permissions
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => openDeleteConfirmation(role.id, role.name)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Role
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -201,7 +294,48 @@ export function AdminRoles() {
           ))
         )}
       </motion.div>
-      <Dialog open={isRoleDialogOpen} onOpenChange={closeRoleDialog}>
+      {/* Create/Edit Role Dialog */}
+      <Dialog open={isRoleDialogOpen && !isPermissionsDialogOpen} onOpenChange={closeRoleDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isCreatingRole ? "Create New Role" : "Edit Role"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="roleName">Role Name</Label>
+              <Input
+                id="roleName"
+                placeholder="e.g., Moderator, Reviewer"
+                value={roleName}
+                onChange={(e) => setRoleName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="roleDescription">Description (Optional)</Label>
+              <Textarea
+                id="roleDescription"
+                placeholder="Describe this role's purpose"
+                value={roleDescription}
+                onChange={(e) => setRoleDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeRoleDialog}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRole} disabled={updating || !roleName.trim()}>
+              {updating ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={isPermissionsDialogOpen} onOpenChange={closePermissionsDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Role Permissions</DialogTitle>
@@ -235,8 +369,44 @@ export function AdminRoles() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={closeRoleDialog}>
+            <Button variant="outline" onClick={closePermissionsDialog}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Role Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Role</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete the role{" "}
+              <span className="font-semibold text-foreground">
+                "{roleToDelete?.name}"
+              </span>
+              ? This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setRoleToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteRole}
+              disabled={updating}
+            >
+              {updating ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

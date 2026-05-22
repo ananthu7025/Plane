@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle, Trash2, Eye } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import { Permissions } from "@/lib/permissions";
+import PermissionGate from "@/components/common/PermissionGate";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +44,8 @@ export default function AdminLetters() {
     error,
     successMessage,
   } = useAppSelector((state) => state.letters);
+
+  const canApprove = usePermission(Permissions.APPROVE_LETTER);
 
   // Local UI state
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
@@ -212,7 +217,7 @@ export default function AdminLetters() {
                       View
                     </Button>
 
-                    {letter.status === "PENDING" && (
+                    {letter.status === "PENDING" && canApprove && (
                       <>
                         <Button
                           size="sm"
@@ -243,19 +248,21 @@ export default function AdminLetters() {
                       </>
                     )}
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 ml-auto"
-                      disabled={deletingLetter}
-                      onClick={() => handleDelete(letter.id)}
-                    >
-                      {deletingLetter ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
+                    <PermissionGate permission={Permissions.DELETE_LETTER}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 ml-auto"
+                        disabled={deletingLetter}
+                        onClick={() => handleDelete(letter.id)}
+                      >
+                        {deletingLetter ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </CardContent>
               </Card>

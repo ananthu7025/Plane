@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../../middleware/auth.js";
 import { adminMiddleware } from "../../middleware/adminAuth.js";
+import { requirePermission } from "../../middleware/permissions.js";
 import { sendSuccess, sendError } from "../../utils/response.js";
 import { validate, paginationSchema, updateProfileSchema, updateUserStatusSchema } from "../../utils/validation.js";
 import { AppError } from "../../utils/errors.js";
@@ -20,7 +21,7 @@ const router = Router();
  * @access Protected (requires ADMIN role)
  * @query page=1&limit=20&search=&status=ACTIVE&role=STUDENT&sort=createdAt&order=desc
  */
-router.get("/users", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.get("/users", authMiddleware, requirePermission("VIEW_USERS"), async (req: Request, res: Response) => {
   try {
     const validatedFilters = validate(paginationSchema, req.query);
     const result = await getAllUsers(validatedFilters);
@@ -41,7 +42,7 @@ router.get("/users", authMiddleware, adminMiddleware, async (req: Request, res: 
  * @access Protected (requires ADMIN role)
  * @param id User ID
  */
-router.get("/users/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.get("/users/:id", authMiddleware, requirePermission("VIEW_USERS"), async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
@@ -69,7 +70,7 @@ router.get("/users/:id", authMiddleware, adminMiddleware, async (req: Request, r
  * @param id User ID
  * @body { fullName?, bio?, phone?, city?, country? }
  */
-router.put("/users/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.put("/users/:id", authMiddleware, requirePermission("SUSPEND_USER"), async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
@@ -102,7 +103,7 @@ router.put("/users/:id", authMiddleware, adminMiddleware, async (req: Request, r
  * @param id User ID
  * @body { status: "ACTIVE" | "INACTIVE" | "SUSPENDED" }
  */
-router.put("/users/:id/status", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.put("/users/:id/status", authMiddleware, requirePermission("SUSPEND_USER"), async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
@@ -134,7 +135,7 @@ router.put("/users/:id/status", authMiddleware, adminMiddleware, async (req: Req
  * @access Protected (requires ADMIN role)
  * @param id User ID
  */
-router.delete("/users/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.delete("/users/:id", authMiddleware, requirePermission("SUSPEND_USER"), async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 

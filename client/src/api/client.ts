@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL, HTTP_STATUS } from "@/lib/constants";
-import { clearCredentials, updateTokens } from "@/store/slices/authSlice";
+import { clearCredentials, setCredentials } from "@/store/slices/authSlice";
 import type {
   AxiosInstance,
   AxiosError,
@@ -166,15 +166,24 @@ const createAxiosInstance = (): AxiosInstance => {
             const {
               accessToken: newAccessToken,
               refreshToken: newRefreshToken,
+              permissions,
+              roleId,
+              roleName,
+              user,
             } = response.data.data;
 
             console.log(
-              "[AUTH] Token refresh successful, updating Redux store...",
+              "[AUTH] Token refresh successful, updating Redux store with permissions...",
             );
+
             store.dispatch(
-              updateTokens({
+              setCredentials({
                 accessToken: newAccessToken,
                 refreshToken: newRefreshToken,
+                permissions: permissions || [],
+                roleId,
+                roleName,
+                user,
               }),
             );
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;

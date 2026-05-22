@@ -30,7 +30,7 @@ export const roles = pgTable(
   "roles",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    name: userRoleEnum("name").notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull().unique(),
     description: text("description"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

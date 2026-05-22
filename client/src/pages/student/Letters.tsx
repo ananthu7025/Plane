@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Search, Plus, Trash2, Send, Heart } from "lucide-react";
+import PermissionGate from "@/components/common/PermissionGate";
+import { Permissions } from "@/lib/permissions";
 import {
   fetchPublicLetters,
   fetchMyLetters,
@@ -195,10 +197,12 @@ export default function Letters() {
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Write a Letter
-              </Button>
+              <PermissionGate permission={Permissions.CREATE_LETTER}>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Write a Letter
+                </Button>
+              </PermissionGate>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>

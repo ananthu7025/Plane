@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { StatCard } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import PermissionGate from "@/components/common/PermissionGate";
+import { Permissions } from "@/lib/permissions";
 import type { Post } from "@/store/slices/communitySlice";
 import { ANIMATION_VARIANTS } from "@/lib/communityConstants";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
@@ -180,14 +182,16 @@ export default function CommunityFeed() {
               Share knowledge, ask questions, and connect with others
             </p>
           </div>
-          <Button
-            size="lg"
-            onClick={() => setIsCreatePostOpen(true)}
-            className="gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Create Post
-          </Button>
+          <PermissionGate permission={Permissions.CREATE_POST}>
+            <Button
+              size="lg"
+              onClick={() => setIsCreatePostOpen(true)}
+              className="gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Create Post
+            </Button>
+          </PermissionGate>
         </div>
       </motion.div>
 
@@ -250,13 +254,15 @@ export default function CommunityFeed() {
                 <p className="text-muted-foreground">
                   No posts yet. Be the first to share!
                 </p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setIsCreatePostOpen(true)}
-                >
-                  Create the First Post
-                </Button>
+                <PermissionGate permission={Permissions.CREATE_POST}>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setIsCreatePostOpen(true)}
+                  >
+                    Create the First Post
+                  </Button>
+                </PermissionGate>
               </CardContent>
             </Card>
           ) : (

@@ -4,6 +4,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
 import { toast } from "sonner";
 import { ROLES_ENDPOINTS } from "@/lib/constants";
+import { refreshUserPermissions } from "./authSlice";
 
 // Types
 interface Permission {
@@ -216,6 +217,51 @@ const rolesSlice = createSlice({
       state.updating = false;
       state.error = action.payload;
     },
+    // Create role reducers
+    createRoleStart: (state) => {
+      state.updating = true;
+      state.error = null;
+    },
+    createRoleSuccess: (state, action: PayloadAction<Role>) => {
+      state.updating = false;
+      state.successMessage = "Role created successfully";
+      state.roles.push(action.payload);
+    },
+    createRoleError: (state, action: PayloadAction<string>) => {
+      state.updating = false;
+      state.error = action.payload;
+    },
+    // Update role reducers
+    updateRoleStart: (state) => {
+      state.updating = true;
+      state.error = null;
+    },
+    updateRoleSuccess: (state, action: PayloadAction<Role>) => {
+      state.updating = false;
+      state.successMessage = "Role updated successfully";
+      const index = state.roles.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.roles[index] = action.payload;
+      }
+    },
+    updateRoleError: (state, action: PayloadAction<string>) => {
+      state.updating = false;
+      state.error = action.payload;
+    },
+    // Delete role reducers
+    deleteRoleStart: (state) => {
+      state.updating = true;
+      state.error = null;
+    },
+    deleteRoleSuccess: (state, action: PayloadAction<number>) => {
+      state.updating = false;
+      state.successMessage = "Role deleted successfully";
+      state.roles = state.roles.filter((r) => r.id !== action.payload);
+    },
+    deleteRoleError: (state, action: PayloadAction<string>) => {
+      state.updating = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -249,6 +295,15 @@ export const {
   updateUserRoleStart,
   updateUserRoleSuccess,
   updateUserRoleError,
+  createRoleStart,
+  createRoleSuccess,
+  createRoleError,
+  updateRoleStart,
+  updateRoleSuccess,
+  updateRoleError,
+  deleteRoleStart,
+  deleteRoleSuccess,
+  deleteRoleError,
 } = rolesSlice.actions;
 
 export default rolesSlice.reducer;
@@ -415,6 +470,8 @@ export function assignPermissionToRole(roleId: number, permissionId: number) {
       toast.success("Permission assigned to role");
       // Refresh the role to get updated permissions
       dispatch(getRoleById(roleId) as any);
+      // Refresh user's token to get updated permissions immediately
+      dispatch(refreshUserPermissions() as any);
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to assign permission";
@@ -438,6 +495,8 @@ export function removePermissionFromRole(roleId: number, permissionId: number) {
       toast.success("Permission removed from role");
       // Refresh the role to get updated permissions
       dispatch(getRoleById(roleId) as any);
+      // Refresh user's token to get updated permissions immediately
+      dispatch(refreshUserPermissions() as any);
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to remove permission";
@@ -469,6 +528,72 @@ export function updateUserRole(
       const message =
         error.response?.data?.error?.message || "Failed to update user role";
       dispatch(updateUserRoleError(message));
+      toast.error(message);
+    }
+  };
+}
+
+/**
+ * Create a new role
+ */
+export function createRole(data: { name: string; description?: string }) {
+  return async function (dispatch: Dispatch) {
+    dispatch(createRoleStart());
+    try {
+      const response = await axiosInstance.post<ApiResponse<Role>>(
+        ROLES_ENDPOINTS.CREATE_ROLE,
+        data,
+      );
+      dispatch(createRoleSuccess(response.data.data));
+      toast.success("Role created successfully");
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error?.message || "Failed to create role";
+      dispatch(createRoleError(message));
+      toast.error(message);
+    }
+  };
+}
+
+/**
+ * Update an existing role
+ */
+export function updateRole(
+  roleId: number,
+  data: { name?: string; description?: string },
+) {
+  return async function (dispatch: Dispatch) {
+    dispatch(updateRoleStart());
+    try {
+      const response = await axiosInstance.put<ApiResponse<Role>>(
+        ROLES_ENDPOINTS.UPDATE_ROLE(roleId),
+        data,
+      );
+      dispatch(updateRoleSuccess(response.data.data));
+      toast.success("Role updated successfully");
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error?.message || "Failed to update role";
+      dispatch(updateRoleError(message));
+      toast.error(message);
+    }
+  };
+}
+
+/**
+ * Delete a role
+ */
+export function deleteRole(roleId: number) {
+  return async function (dispatch: Dispatch) {
+    dispatch(deleteRoleStart());
+    try {
+      await axiosInstance.delete(ROLES_ENDPOINTS.DELETE_ROLE(roleId));
+      dispatch(deleteRoleSuccess(roleId));
+      toast.success("Role deleted successfully");
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error?.message || "Failed to delete role";
+      dispatch(deleteRoleError(message));
       toast.error(message);
     }
   };

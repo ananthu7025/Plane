@@ -25,6 +25,7 @@ const navGroups = [
   {
     label: "User Management",
     items: [
+      { icon: Users, label: "Users", path: "/admin/users" },
       { icon: Users, label: "Students", path: "/admin/students" },
       { icon: Shield, label: "Roles & Access", path: "/admin/roles" },
     ],

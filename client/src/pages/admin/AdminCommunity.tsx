@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ANIMATION_VARIANTS } from "@/lib/communityConstants";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
+import { usePermission } from "@/hooks/usePermission";
+import { Permissions } from "@/lib/permissions";
+import PermissionGate from "@/components/common/PermissionGate";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard, DeleteConfirmDialog } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +76,10 @@ export function AdminCommunity() {
     error,
     successMessage,
   } = useAppSelector((state) => state.community);
+
+  const canApprove = usePermission(Permissions.APPROVE_POST);
+  const canReject = usePermission(Permissions.REJECT_POST);
+  const canBan = usePermission(Permissions.BAN_USER);
 
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
   const [activeTab, setActiveTab] = useState("all");
@@ -323,14 +330,16 @@ export function AdminCommunity() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Community Categories</CardTitle>
-                  <Button
-                    size="sm"
-                    onClick={() => setIsCategoryDialogOpen(true)}
-                    disabled={loading}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Category
-                  </Button>
+                  <PermissionGate permission={Permissions.APPROVE_POST}>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsCategoryDialogOpen(true)}
+                      disabled={loading}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Category
+                    </Button>
+                  </PermissionGate>
                 </div>
               </CardHeader>
               <CardContent>
@@ -426,14 +435,16 @@ export function AdminCommunity() {
                             {new Date(user.bannedAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUnbanUser(user.userId)}
-                          disabled={loading}
-                        >
-                          Unban
-                        </Button>
+                        <PermissionGate permission={Permissions.UNBAN_USER}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUnbanUser(user.userId)}
+                            disabled={loading}
+                          >
+                            Unban
+                          </Button>
+                        </PermissionGate>
                       </div>
                     ))}
                   </div>
@@ -522,12 +533,10 @@ export function AdminCommunity() {
                           key={post.id}
                           post={post}
                           isModeration={mainView === "moderate"}
-                          onApprove={() => handleApprove(post.id)}
-                          onDecline={() => setDeclineReasonDialogOpen(post.id)}
+                          onApprove={canApprove ? () => handleApprove(post.id) : undefined}
+                          onDecline={canReject ? () => setDeclineReasonDialogOpen(post.id) : undefined}
                           onDelete={() => setDeletePostConfirmOpen(post.id)}
-                          onBanAuthor={() =>
-                            setBanUserDialogOpen(post.author?.id || "")
-                          }
+                          onBanAuthor={canBan ? () => setBanUserDialogOpen(post.author?.id || "") : undefined}
                           onViewDetails={() => setViewPostDetailsOpen(post.id)}
                           isLoading={loading}
                         />
