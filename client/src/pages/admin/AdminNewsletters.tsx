@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Plus, Trash2, Edit2, Upload, Archive, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, Plus, Trash2, Edit2, Upload, Archive, Eye } from "lucide-react";
 import PermissionGate from "@/components/common/PermissionGate";
+import PDFViewer from "@/components/PDFViewer";
 import { Permissions } from "@/lib/permissions";
 import {
   Dialog,
@@ -27,7 +28,6 @@ import {
 import { useForm } from "react-hook-form";
 import {
   fetchAdminNewsletters,
-  fetchNewsletterPage,
   createNewsletter,
   updateNewsletter,
   deleteNewsletter,
@@ -45,14 +45,12 @@ interface CreateNewsletterForm {
   title: string;
   description: string;
   category: string;
-  isPaid: boolean;
 }
 
 interface EditNewsletterForm {
   title?: string;
   description?: string;
   category?: string;
-  isPaid?: boolean;
 }
 
 export default function AdminNewsletters() {
@@ -72,8 +70,6 @@ export default function AdminNewsletters() {
     updatingNewsletter,
     deletingNewsletter,
     togglingStatus,
-    selectedPage,
-    loadingPage,
     error,
     successMessage,
   } = useAppSelector((state) => state.newsletters);
@@ -85,14 +81,12 @@ export default function AdminNewsletters() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [viewingNewsletterId, setViewingNewsletterId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const createForm = useForm<CreateNewsletterForm>({
     defaultValues: {
       title: "",
       description: "",
       category: "",
-      isPaid: false,
     },
   });
 
@@ -152,7 +146,6 @@ export default function AdminNewsletters() {
     formData.append("title", data.title);
     formData.append("description", data.description);
     formData.append("category", data.category);
-    formData.append("isPaid", String(data.isPaid));
     formData.append("file", selectedFile);
 
     dispatch(createNewsletter(formData) as any);
@@ -166,7 +159,6 @@ export default function AdminNewsletters() {
       ...(data.title && { title: data.title }),
       ...(data.description && { description: data.description }),
       ...(data.category && { category: data.category }),
-      ...(data.isPaid !== undefined && { isPaid: data.isPaid }),
     };
 
     dispatch(updateNewsletter(editingId, payload) as any);
@@ -186,7 +178,6 @@ export default function AdminNewsletters() {
       title: newsletter.title,
       description: newsletter.description,
       category: newsletter.category,
-      isPaid: newsletter.isPaid,
     });
     setIsEditOpen(true);
   };
@@ -198,20 +189,6 @@ export default function AdminNewsletters() {
       newStatus = "archived";
     }
     dispatch(toggleNewsletterStatus(id, newStatus) as any);
-  };
-
-  // Handle view newsletter
-  const handleView = (newsletter: any) => {
-    setViewingNewsletterId(newsletter.id);
-    setCurrentPage(1);
-    // Load the first page
-    loadPage(newsletter.id, 1);
-  };
-
-  // Load a specific page using Redux thunk
-  const loadPage = (newsletterId: string, pageNum: number) => {
-    dispatch(fetchNewsletterPage(newsletterId, pageNum) as any);
-    setCurrentPage(pageNum);
   };
 
   const getStatusColor = (status: string) => {
@@ -228,6 +205,11 @@ export default function AdminNewsletters() {
   };
 
   const categories = ["All", "Aviation News", "Safety Tips", "Industry Updates"];
+
+  // Get viewing newsletter data
+  const viewingNewsletter = viewingNewsletterId
+    ? adminNewsletters.find((n) => n.id === viewingNewsletterId)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
@@ -315,18 +297,6 @@ export default function AdminNewsletters() {
                         {createForm.formState.errors.category.message}
                       </p>
                     )}
-                  </div>
-
-                  <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50">
-                    <input
-                      type="checkbox"
-                      {...createForm.register("isPaid")}
-                      id="isPaid"
-                      className="w-4 h-4"
-                    />
-                    <label htmlFor="isPaid" className="text-sm text-slate-700">
-                      Paid (Premium) Newsletter
-                    </label>
                   </div>
 
                   <div>
@@ -497,14 +467,6 @@ export default function AdminNewsletters() {
                         >
                           {newsletter.status}
                         </span>
-                        {newsletter.isPaid && (
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
-                            Paid
-                          </span>
-                        )}
-                        <span className="text-sm text-slate-600">
-                          {newsletter.pageCount} pages
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -547,7 +509,7 @@ export default function AdminNewsletters() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleView(newsletter)}
+                      onClick={() => setViewingNewsletterId(newsletter.id)}
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       View
@@ -689,18 +651,6 @@ export default function AdminNewsletters() {
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50">
-                <input
-                  type="checkbox"
-                  {...editForm.register("isPaid")}
-                  id="editIsPaid"
-                  className="w-4 h-4"
-                />
-                <label htmlFor="editIsPaid" className="text-sm text-slate-700">
-                  Paid (Premium) Newsletter
-                </label>
-              </div>
-
               <Button
                 type="submit"
                 disabled={updatingNewsletter}
@@ -723,52 +673,21 @@ export default function AdminNewsletters() {
         </Dialog>
       )}
 
-      {/* Newsletter Viewer Modal */}
-      {viewingNewsletterId && (
+      {/* PDF Viewer Modal */}
+      {viewingNewsletter && (
         <Dialog open={!!viewingNewsletterId} onOpenChange={(open) => !open && setViewingNewsletterId(null)}>
-          <DialogContent className="sm:max-w-[800px]">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle>Newsletter Viewer</DialogTitle>
-              <DialogDescription>
-                Page {currentPage} - {adminNewsletters.find(n => n.id === viewingNewsletterId)?.pageCount || 1} pages
-              </DialogDescription>
+              <DialogTitle>{viewingNewsletter.title}</DialogTitle>
             </DialogHeader>
 
-            <div className="w-full bg-slate-100 rounded-lg flex items-center justify-center min-h-[500px]">
-              {loadingPage ? (
-                <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
-              ) : selectedPage ? (
-                <iframe
-                  src={`https://docs.google.com/gview?url=${encodeURIComponent(selectedPage.imageUrl)}&embedded=true`}
-                  title={`Page ${currentPage}`}
-                  className="w-full h-[500px] border-0 rounded-lg"
-                  onError={() => {
-                    console.error("Failed to load PDF. URL:", selectedPage.imageUrl);
-                    toast.error("Failed to load PDF");
-                  }}
-                  onLoad={() => {
-                    console.log("PDF loaded successfully");
-                  }}
-                />
-              ) : (
-                <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
-              )}
-            </div>
-
-            {/* Page Navigation - Admin only sees page 1 */}
-            <div className="flex justify-between items-center mt-4">
-              <Button variant="outline" size="sm" disabled className="invisible">
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
-              <span className="text-sm text-slate-600">
-                Page 1 of {adminNewsletters.find(n => n.id === viewingNewsletterId)?.pageCount || 1}
-                <span className="text-xs text-slate-500 ml-2">(Admin preview only)</span>
-              </span>
-              <Button variant="outline" size="sm" disabled className="invisible">
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+            <div className="flex-1 overflow-auto">
+              <PDFViewer
+                url={`/api/newsletters/${viewingNewsletter.id}/pdf`}
+                title={viewingNewsletter.title}
+                isPaid={false}
+                showPageCount={true}
+              />
             </div>
           </DialogContent>
         </Dialog>

@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
+import fs from "fs/promises";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -9,39 +9,21 @@ cloudinary.config({
 });
 
 /**
- * Get PDF page count using a simple heuristic
- * Counts the number of PDF objects (streams) which typically correlates to pages
- */
-function getPDFPageCount(filePath: string): number {
-  try {
-    const buffer = fs.readFileSync(filePath);
-    const content = buffer.toString("binary");
-
-    // Count endstream markers (each page typically has one)
-    const matches = content.match(/endstream/g);
-    const pageCount = matches ? Math.max(1, Math.ceil(matches.length / 2)) : 1;
-
-    return Math.max(1, pageCount);
-  } catch (error) {
-    console.error("Error reading PDF:", error);
-    return 1; // Default to 1 page if error
-  }
-}
-
-/**
- * Upload a PDF to Cloudinary and extract pages
+ * Upload a PDF to Cloudinary
+ * Returns the URL to the original PDF file for iframe display
  */
 export async function uploadPDFToCloudinary(file: Express.Multer.File, folder: string) {
+  let tempFileDeleted = false;
+
   try {
     // Validate file exists
-    if (!fs.existsSync(file.path)) {
+    try {
+      await fs.access(file.path);
+    } catch {
       throw new Error(`File not found at: ${file.path}`);
     }
 
-    // Get page count before upload
-    const pageCount = getPDFPageCount(file.path);
-
-    // Upload the PDF file
+    // Upload the PDF file to Cloudinary
     const result = await cloudinary.uploader.upload(file.path, {
       folder: `planeandprop/newsletters/${folder}`,
       resource_type: "raw", // PDF is raw file type
@@ -50,44 +32,29 @@ export async function uploadPDFToCloudinary(file: Express.Multer.File, folder: s
       overwrite: false,
     });
 
-    // Extract pages as JPG images using Cloudinary fetch API
-    const pages: { page: number; url: string; publicId: string }[] = [];
-
-    // Use Cloudinary's fetch API to transform PDF pages to JPG images
-    for (let i = 1; i <= pageCount; i++) {
-      // Encode the PDF URL for use in fetch API
-      const encodedPdfUrl = encodeURIComponent(result.secure_url);
-
-      // Use fetch API to convert PDF page to JPG
-      const pageUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/f_jpg,pg_${i},q_auto/${encodedPdfUrl}`;
-
-      pages.push({
-        page: i,
-        url: pageUrl,
-        publicId: `${result.public_id}/page-${i}`,
-      });
+    // Clean up the temporary file
+    try {
+      await fs.unlink(file.path);
+      tempFileDeleted = true;
+    } catch (unlinkError) {
+      console.warn("Failed to delete temp file:", file.path, unlinkError);
     }
-
-    // Generate thumbnail from first page
-    const thumbnail = cloudinary.url(result.public_id, {
-      resource_type: "raw",
-      format: "jpg",
-      page: 1,
-      quality: "auto",
-      crop: "fill",
-      height: 300,
-      width: 400,
-    });
 
     return {
       publicId: result.public_id,
-      url: result.secure_url,
-      thumbnail,
-      pageCount,
-      pages,
+      url: result.secure_url, // Direct Cloudinary URL - served through /api/newsletters/:id/pdf proxy
       fileSize: result.bytes,
     };
   } catch (error) {
+    // Try to clean up temp file if not already deleted
+    if (!tempFileDeleted) {
+      try {
+        await fs.unlink(file.path);
+      } catch (unlinkError) {
+        console.warn("Failed to delete temp file after error:", file.path, unlinkError);
+      }
+    }
+
     console.error("Cloudinary upload error:", error);
     throw new Error("Failed to upload PDF to Cloudinary");
   }
@@ -103,33 +70,4 @@ export async function deleteFromCloudinary(publicId: string) {
     console.error("Cloudinary delete error:", error);
     throw new Error("Failed to delete file from Cloudinary");
   }
-}
-
-/**
- * Get transformation URL for a page
- */
-export function getPageImageUrl(publicId: string, pageNumber: number, width: number = 1200): string {
-  return cloudinary.url(publicId, {
-    resource_type: "raw",
-    format: "jpg",
-    page: pageNumber,
-    quality: "auto",
-    crop: "scale",
-    width,
-  });
-}
-
-/**
- * Get thumbnail URL
- */
-export function getThumbnailUrl(publicId: string, width: number = 400, height: number = 300): string {
-  return cloudinary.url(publicId, {
-    resource_type: "raw",
-    format: "jpg",
-    page: 1,
-    quality: "auto",
-    crop: "fill",
-    height,
-    width,
-  });
 }

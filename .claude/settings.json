@@ -50,7 +50,21 @@
       "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop)",
       "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -c \"\\\\dt newsletters newsletter_pages\")",
       "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -c \"SELECT table_name FROM information_schema.tables WHERE table_name IN \\(''newsletters'', ''newsletter_pages''\\);\")",
-      "Bash(npm run build --workspace=client)"
+      "Bash(npm run build --workspace=client)",
+      "Bash(npx drizzle-kit generate)",
+      "Bash(npx drizzle-kit migrate)",
+      "Bash(timeout 30 npx drizzle-kit push)",
+      "Bash(npx drizzle-kit push --force)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(taskkill /F /FI \"IMAGENAME eq node.exe\")",
+      "Bash(npm install react-pdf pdfjs-dist)",
+      "Bash(npm install pdf-lib)",
+      "Bash(npm install @react-pdf-viewer/core @react-pdf-viewer/default-layout pdfjs-dist)",
+      "Bash(npm install @react-pdf-viewer/core --legacy-peer-deps)",
+      "Bash(npm install @react-pdf-viewer/default-layout)",
+      "Bash(npm install pdfjs-dist@^3.11.174 --save)",
+      "Bash(git add client/package.json client/package-lock.json client/src/components/PDFViewer.tsx)",
+      "Bash(npm uninstall @react-pdf-viewer/core @react-pdf-viewer/default-layout)"
     ]
   }
 }

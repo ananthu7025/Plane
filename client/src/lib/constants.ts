@@ -98,7 +98,6 @@ export const NEWSLETTER_ENDPOINTS = {
   // Web (Student) Endpoints
   GET_NEWSLETTERS: '/api/newsletters/web',
   GET_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}/web`,
-  GET_NEWSLETTER_PAGE: (id: string, pageNumber: number) => `/api/newsletters/${id}/pages/${pageNumber}/web`,
 
   // Public Endpoints (no auth)
   GET_PUBLIC_NEWSLETTERS: '/api/newsletters/public',

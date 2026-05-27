@@ -1,8 +1,8 @@
 import { db } from "../../db/index.js";
-import { newsletters, newsletterPages } from "../../db/schema.js";
-import { eq, desc, ilike, and, isNull, gte, lte } from "drizzle-orm";
+import { newsletters } from "../../db/schema.js";
+import { eq, desc, ilike, and, isNull } from "drizzle-orm";
 import { AppError } from "../../utils/errors.js";
-import { uploadPDFToCloudinary, deleteFromCloudinary, getPageImageUrl } from "./cloudinaryService.js";
+import { uploadPDFToCloudinary, deleteFromCloudinary } from "./cloudinaryService.js";
 
 /**
  * Create a new newsletter
@@ -13,7 +13,6 @@ export async function createNewsletter(
     title: string;
     description?: string;
     category: string;
-    isPaid: boolean;
     file: Express.Multer.File;
   }
 ) {
@@ -30,28 +29,13 @@ export async function createNewsletter(
         category: data.category,
         cloudinaryPublicId: cloudinaryData.publicId,
         cloudinaryUrl: cloudinaryData.url,
-        cloudinaryThumbnail: cloudinaryData.thumbnail,
         fileSize: cloudinaryData.fileSize,
-        pageCount: cloudinaryData.pageCount,
-        isPaid: data.isPaid,
         uploadedBy,
         status: "published",
       })
       .returning();
 
-    const newsletter = result[0];
-
-    // Create page records
-    for (const page of cloudinaryData.pages) {
-      await db.insert(newsletterPages).values({
-        newsletterId: newsletter.id,
-        pageNumber: page.page,
-        cloudinaryImageUrl: page.url,
-        cloudinaryPublicId: page.publicId,
-      });
-    }
-
-    return newsletter;
+    return result[0];
   } catch (error) {
     console.error("Create newsletter error:", error);
     throw new AppError(500, "NEWSLETTER_CREATE_FAILED", "Failed to create newsletter");
@@ -66,7 +50,6 @@ export async function getAdminNewsletters(filters: {
   limit?: number;
   search?: string;
   category?: string;
-  isPaid?: boolean;
   status?: string;
   sort?: "recent" | "oldest";
 } = {}) {
@@ -86,10 +69,6 @@ export async function getAdminNewsletters(filters: {
 
     if (filters.category) {
       conditions.push(eq(newsletters.category, filters.category));
-    }
-
-    if (filters.isPaid !== undefined) {
-      conditions.push(eq(newsletters.isPaid, filters.isPaid));
     }
 
     if (filters.status) {
@@ -182,17 +161,7 @@ export async function getNewsletterById(id: string) {
       throw new AppError(404, "NEWSLETTER_NOT_FOUND", "Newsletter not found");
     }
 
-    // Get first page for preview
-    const firstPage = await db
-      .select()
-      .from(newsletterPages)
-      .where(and(eq(newsletterPages.newsletterId, id), eq(newsletterPages.pageNumber, 1)))
-      .limit(1);
-
-    return {
-      ...result[0],
-      previewPage: firstPage[0] || null,
-    };
+    return result[0];
   } catch (error) {
     if (error instanceof AppError) throw error;
     console.error("Get newsletter error:", error);
@@ -203,7 +172,7 @@ export async function getNewsletterById(id: string) {
 /**
  * Update newsletter
  */
-export async function updateNewsletter(id: string, data: { title?: string; description?: string; category?: string; isPaid?: boolean }) {
+export async function updateNewsletter(id: string, data: { title?: string; description?: string; category?: string }) {
   try {
     // Check if newsletter exists
     const existing = await db.select().from(newsletters).where(eq(newsletters.id, id)).limit(1);
@@ -219,7 +188,6 @@ export async function updateNewsletter(id: string, data: { title?: string; descr
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.category !== undefined) updateData.category = data.category;
-    if (data.isPaid !== undefined) updateData.isPaid = data.isPaid;
 
     const result = await db.update(newsletters).set(updateData).where(eq(newsletters.id, id)).returning();
 
@@ -291,46 +259,3 @@ export async function deleteNewsletter(id: string) {
   }
 }
 
-/**
- * Get a specific page (WEB ONLY - returns error for pages 2+)
- */
-export async function getNewsletterPageWeb(newsletterId: string, pageNumber: number) {
-  try {
-    // Web platform only supports page 1
-    if (pageNumber !== 1) {
-      throw new AppError(403, "WEB_RESTRICTED", "Full content is only available in our Mobile App", {
-        pageNumber,
-        redirectMessage: "Download Mobile App to view full newsletter",
-      });
-    }
-
-    // Get newsletter
-    const newsletter = await db.select().from(newsletters).where(eq(newsletters.id, newsletterId)).limit(1);
-
-    if (!newsletter.length || newsletter[0].deletedAt) {
-      throw new AppError(404, "NEWSLETTER_NOT_FOUND", "Newsletter not found");
-    }
-
-    // Get page
-    const page = await db
-      .select()
-      .from(newsletterPages)
-      .where(and(eq(newsletterPages.newsletterId, newsletterId), eq(newsletterPages.pageNumber, pageNumber)))
-      .limit(1);
-
-    if (!page.length) {
-      throw new AppError(404, "PAGE_NOT_FOUND", "Page not found");
-    }
-
-    return {
-      pageNumber: page[0].pageNumber,
-      imageUrl: page[0].cloudinaryImageUrl,
-      cloudinaryPublicId: page[0].cloudinaryPublicId,
-      isLocked: false,
-    };
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    console.error("Get newsletter page error:", error);
-    throw new AppError(500, "PAGE_FETCH_FAILED", "Failed to fetch page");
-  }
-}

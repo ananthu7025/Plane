@@ -24,11 +24,8 @@ export interface Newsletter {
   description?: string;
   category: string;
   cloudinaryUrl: string;
-  cloudinaryThumbnail?: string;
   cloudinaryPublicId: string;
   fileSize: number;
-  pageCount: number;
-  isPaid: boolean;
   status: "published" | "archived" | "draft";
   uploadedBy: string;
   publishedAt: string;
@@ -36,18 +33,6 @@ export interface Newsletter {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
-  previewPage?: {
-    pageNumber: number;
-    cloudinaryImageUrl: string;
-    cloudinaryPublicId: string;
-  } | null;
-}
-
-export interface NewsletterPage {
-  pageNumber: number;
-  imageUrl: string;
-  cloudinaryPublicId: string;
-  isLocked: boolean;
 }
 
 export interface NewsletterPagination {
@@ -80,14 +65,11 @@ interface NewsletterSliceState {
 
   // Single newsletter detail
   selectedNewsletter: Newsletter | null;
-  selectedPage: NewsletterPage | null;
-  currentPageNumber: number;
 
   // Loading states
   loadingNewsletters: boolean;
   loadingAdminNewsletters: boolean;
   loadingDetail: boolean;
-  loadingPage: boolean;
   creatingNewsletter: boolean;
   updatingNewsletter: boolean;
   deletingNewsletter: boolean;
@@ -120,14 +102,11 @@ const initialState: NewsletterSliceState = {
 
   // Detail
   selectedNewsletter: null,
-  selectedPage: null,
-  currentPageNumber: 1,
 
   // Loading
   loadingNewsletters: false,
   loadingAdminNewsletters: false,
   loadingDetail: false,
-  loadingPage: false,
   creatingNewsletter: false,
   updatingNewsletter: false,
   deletingNewsletter: false,
@@ -181,16 +160,8 @@ const newsletterSlice = createSlice({
     setSelectedNewsletter: (state, action: PayloadAction<Newsletter>) => {
       state.selectedNewsletter = action.payload;
     },
-    setSelectedPage: (state, action: PayloadAction<NewsletterPage>) => {
-      state.selectedPage = action.payload;
-    },
-    setCurrentPageNumber: (state, action: PayloadAction<number>) => {
-      state.currentPageNumber = action.payload;
-    },
     clearDetail: (state) => {
       state.selectedNewsletter = null;
-      state.selectedPage = null;
-      state.currentPageNumber = 1;
     },
 
     // UI State
@@ -252,19 +223,6 @@ const newsletterSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Newsletter Page
-    getNewsletterPageStart: (state) => {
-      state.loadingPage = true;
-      state.error = null;
-    },
-    getNewsletterPageSuccess: (state, action: PayloadAction<NewsletterPage>) => {
-      state.loadingPage = false;
-      state.selectedPage = action.payload;
-    },
-    getNewsletterPageError: (state, action: PayloadAction<string>) => {
-      state.loadingPage = false;
-      state.error = action.payload;
-    },
 
     // Create Newsletter
     createNewsletterStart: (state) => {
@@ -360,8 +318,6 @@ export const {
 
   // Detail
   setSelectedNewsletter,
-  setSelectedPage,
-  setCurrentPageNumber,
   clearDetail,
 
   // UI state
@@ -382,11 +338,6 @@ export const {
   getNewsletterDetailStart,
   getNewsletterDetailSuccess,
   getNewsletterDetailError,
-
-  // Page
-  getNewsletterPageStart,
-  getNewsletterPageSuccess,
-  getNewsletterPageError,
 
   // Create
   createNewsletterStart,
@@ -512,27 +463,6 @@ export function fetchNewsletterDetail(id: string) {
 }
 
 /**
- * Fetch newsletter page
- */
-export function fetchNewsletterPage(id: string, pageNumber: number) {
-  return async function (dispatch: Dispatch) {
-    dispatch(getNewsletterPageStart());
-    try {
-      const response = await axiosInstance.get<ApiResponse<NewsletterPage>>(
-        NEWSLETTER_ENDPOINTS.GET_NEWSLETTER_PAGE(id, pageNumber)
-      );
-      dispatch(getNewsletterPageSuccess(response.data.data));
-      dispatch(setCurrentPageNumber(pageNumber));
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to load page";
-      dispatch(getNewsletterPageError(message));
-      toast.error(message);
-    }
-  };
-}
-
-/**
  * Create newsletter
  */
 export function createNewsletter(payload: FormData) {
@@ -566,7 +496,6 @@ export function updateNewsletter(id: string, payload: {
   title?: string;
   description?: string;
   category?: string;
-  isPaid?: boolean;
 }) {
   return async function (dispatch: Dispatch) {
     dispatch(updateNewsletterStart());

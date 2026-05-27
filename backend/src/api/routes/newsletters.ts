@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
+import { PDFDocument } from "pdf-lib";
 import { authMiddleware } from "../../middleware/auth.js";
 import { requirePermission } from "../../middleware/permissions.js";
 import { sendSuccess, sendError } from "../../utils/response.js";
@@ -12,8 +13,8 @@ import {
   updateNewsletter,
   toggleNewsletterStatus,
   deleteNewsletter,
-  getNewsletterPageWeb,
 } from "../services/newsletterService.js";
+import { deleteFromCloudinary } from "../services/cloudinaryService.js";
 
 const router = Router();
 
@@ -51,7 +52,7 @@ router.post(
       }
 
       const userId = (req as any).userId;
-      const { title, description, category, isPaid } = req.body;
+      const { title, description, category } = req.body;
 
       // Validation
       if (!title || !category) {
@@ -62,7 +63,6 @@ router.post(
         title,
         description,
         category,
-        isPaid: isPaid === "true" || isPaid === true,
         file: req.file,
       });
 
@@ -85,14 +85,13 @@ router.post(
  */
 router.get("/newsletters", authMiddleware, requirePermission("VIEW_NEWSLETTERS"), async (req: Request, res: Response) => {
   try {
-    const { page, limit, search, category, isPaid, status, sort } = req.query;
+    const { page, limit, search, category, status, sort } = req.query;
 
     const result = await getAdminNewsletters({
       page: page ? parseInt(page as string) : 1,
       limit: limit ? parseInt(limit as string) : 20,
       search: search as string,
       category: category as string,
-      isPaid: isPaid ? isPaid === "true" : undefined,
       status: status as string,
       sort: (sort as any) || "recent",
     });
@@ -140,35 +139,6 @@ router.get("/newsletters/web", authMiddleware, async (req: Request, res: Respons
 });
 
 /**
- * @route GET /api/newsletters/:id/pages/:pageNumber/web
- * @description Get page 1 only (web platform - pages 2+ blocked)
- * @access Private (authenticated users)
- * @note Must be defined BEFORE /:id/web to prevent route conflicts
- */
-router.get("/newsletters/:id/pages/:pageNumber/web", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
-    const pageNumber = typeof req.params.pageNumber === "string" ? req.params.pageNumber : req.params.pageNumber[0];
-    const pageNum = parseInt(pageNumber);
-
-    if (isNaN(pageNum) || pageNum < 1) {
-      throw new AppError(400, "INVALID_PAGE_NUMBER", "Invalid page number");
-    }
-
-    const result = await getNewsletterPageWeb(id, pageNum);
-
-    sendSuccess(res, 200, result);
-  } catch (error) {
-    if (error instanceof AppError) {
-      sendError(res, error.statusCode, error.code, error.message, error.details);
-    } else {
-      console.error("Get page error:", error);
-      sendError(res, 500, "INTERNAL_ERROR", "Failed to fetch page");
-    }
-  }
-});
-
-/**
  * @route GET /api/newsletters/:id/web
  * @description Get single newsletter details (web platform)
  * @access Private (authenticated users)
@@ -184,6 +154,50 @@ router.get("/newsletters/:id/web", authMiddleware, async (req: Request, res: Res
       sendError(res, error.statusCode, error.code, error.message, error.details);
     } else {
       console.error("Get newsletter error:", error);
+      sendError(res, 500, "INTERNAL_ERROR", "Failed to fetch newsletter");
+    }
+  }
+});
+
+/**
+ * @route GET /api/newsletters/:id/pdf
+ * @description Get PDF file - Page 1 only (preview)
+ * @access Public
+ */
+router.get("/newsletters/:id/pdf", async (req: Request, res: Response) => {
+  try {
+    const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
+    const newsletter = await getNewsletterById(id);
+
+    // Fetch PDF from Cloudinary
+    const pdfResponse = await fetch(newsletter.cloudinaryUrl);
+    if (!pdfResponse.ok) {
+      throw new Error("Failed to fetch PDF from Cloudinary");
+    }
+
+    // Load PDF and extract first page only
+    const pdfBytes = await pdfResponse.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+
+    // Create new PDF with only first page
+    const newPdfDoc = await PDFDocument.create();
+    const [firstPage] = await newPdfDoc.copyPages(pdfDoc, [0]);
+    newPdfDoc.addPage(firstPage);
+
+    // Convert to bytes
+    const newPdfBytes = await newPdfDoc.save();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline; filename=newsletter-preview.pdf");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+
+    // Send extracted PDF
+    res.send(Buffer.from(newPdfBytes));
+  } catch (error) {
+    if (error instanceof AppError) {
+      sendError(res, error.statusCode, error.code, error.message, error.details);
+    } else {
+      console.error("Get newsletter PDF error:", error);
       sendError(res, 500, "INTERNAL_ERROR", "Failed to fetch newsletter");
     }
   }
@@ -310,13 +324,12 @@ router.get("/newsletters/:id", authMiddleware, requirePermission("VIEW_NEWSLETTE
 router.put("/newsletters/:id", authMiddleware, requirePermission("MANAGE_NEWSLETTERS"), async (req: Request, res: Response) => {
   try {
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
-    const { title, description, category, isPaid } = req.body;
+    const { title, description, category } = req.body;
 
     const result = await updateNewsletter(id, {
       title,
       description,
       category,
-      isPaid,
     });
 
     sendSuccess(res, 200, result);
@@ -338,7 +351,20 @@ router.put("/newsletters/:id", authMiddleware, requirePermission("MANAGE_NEWSLET
 router.delete("/newsletters/:id", authMiddleware, requirePermission("MANAGE_NEWSLETTERS"), async (req: Request, res: Response) => {
   try {
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
+
+    // Get newsletter to get its Cloudinary public ID
+    const newsletter = await getNewsletterById(id);
+
+    // Delete from database
     const result = await deleteNewsletter(id);
+
+    // Delete from Cloudinary
+    try {
+      await deleteFromCloudinary(newsletter.cloudinaryPublicId);
+    } catch (cloudinaryError) {
+      console.warn("Failed to delete from Cloudinary:", cloudinaryError);
+      // Continue anyway - DB deletion was successful
+    }
 
     sendSuccess(res, 200, result);
   } catch (error) {

@@ -6,18 +6,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Download, Lock, FileText } from "lucide-react";
+import { Loader2, Search, Eye } from "lucide-react";
+import PDFViewer from "@/components/PDFViewer";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
   fetchNewsletters,
-  fetchNewsletterDetail,
-  fetchNewsletterPage,
   clearError,
   clearSuccessMessage,
   setNewslettersSearch,
@@ -35,11 +33,6 @@ export default function Newsletters() {
     newslettersSearch,
     newslettersCategory,
     loadingNewsletters,
-    loadingDetail,
-    loadingPage,
-    selectedNewsletter,
-    selectedPage,
-    currentPageNumber,
     error,
     successMessage,
   } = useAppSelector((state) => state.newsletters);
@@ -47,8 +40,7 @@ export default function Newsletters() {
   // Local state
   const [searchInput, setSearchInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [pdfOpen, setPdfOpen] = useState(false);
+  const [viewingNewsletterId, setViewingNewsletterId] = useState<string | null>(null);
 
   // Toast notifications
   useEffect(() => {
@@ -91,18 +83,6 @@ export default function Newsletters() {
     dispatch(setNewslettersCategory(category));
   };
 
-  // Handle newsletter detail view
-  const handleViewDetail = (newsletter: any) => {
-    dispatch(fetchNewsletterDetail(newsletter.id) as any);
-    setDetailOpen(true);
-  };
-
-  // Handle view PDF (page 1)
-  const handleViewPDF = (newsletter: any) => {
-    dispatch(fetchNewsletterPage(newsletter.id, 1) as any);
-    setPdfOpen(true);
-  };
-
   // Handle pagination
   const handlePreviousPage = () => {
     if (newslettersPagination && newslettersPagination.page > 1) {
@@ -135,6 +115,11 @@ export default function Newsletters() {
 
   // Sample categories
   const categories = ["All", "Aviation News", "Safety Tips", "Industry Updates"];
+
+  // Get viewing newsletter data
+  const viewingNewsletter = viewingNewsletterId
+    ? newsletters.find((n) => n.id === viewingNewsletterId)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
@@ -211,68 +196,32 @@ export default function Newsletters() {
                 key={newsletter.id}
                 className="hover:shadow-lg transition-shadow flex flex-col overflow-hidden"
               >
-                {/* Thumbnail */}
-                {newsletter.cloudinaryThumbnail && (
-                  <div className="h-40 bg-slate-200 overflow-hidden">
-                    <img
-                      src={newsletter.cloudinaryThumbnail}
-                      alt={newsletter.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-
                 <CardHeader className="flex-1">
                   <div className="space-y-2">
-                    <div className="flex justify-between items-start gap-2">
-                      <CardTitle className="text-lg line-clamp-2">
-                        {newsletter.title}
-                      </CardTitle>
-                      {newsletter.isPaid && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium whitespace-nowrap">
-                          Paid
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {newsletter.pageCount} pages
-                    </p>
+                    <CardTitle className="text-lg line-clamp-2">
+                      {newsletter.title}
+                    </CardTitle>
                     {newsletter.description && (
                       <p className="text-sm text-slate-600 line-clamp-2">
                         {newsletter.description}
                       </p>
                     )}
-                    <p className="text-xs text-slate-500">
-                      {new Date(newsletter.publishedAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex flex-col gap-1 text-xs text-slate-500">
+                      <p>{newsletter.category}</p>
+                      <p>{new Date(newsletter.publishedAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-3 pt-0">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleViewDetail(newsletter)}
-                    >
-                      <FileText className="w-4 h-4 mr-1" />
-                      Details
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleViewPDF(newsletter)}
-                      disabled={loadingPage}
-                    >
-                      {loadingPage ? (
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 mr-1" />
-                      )}
-                      View
-                    </Button>
-                  </div>
+                <CardContent className="pt-0">
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setViewingNewsletterId(newsletter.id)}
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    View PDF
+                  </Button>
                 </CardContent>
               </Card>
             ))
@@ -305,207 +254,22 @@ export default function Newsletters() {
         )}
       </div>
 
-      {/* Newsletter Detail Dialog */}
-      {detailOpen && selectedNewsletter && (
-        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            {loadingDetail ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <DialogHeader>
-                  <DialogTitle>{selectedNewsletter.title}</DialogTitle>
-                  <DialogDescription>
-                    {selectedNewsletter.category} • {selectedNewsletter.pageCount} pages
-                  </DialogDescription>
-                </DialogHeader>
-
-                {/* Thumbnail */}
-                {selectedNewsletter.cloudinaryThumbnail && (
-                  <div className="h-48 w-full rounded-lg overflow-hidden">
-                    <img
-                      src={selectedNewsletter.cloudinaryThumbnail}
-                      alt={selectedNewsletter.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* Details */}
-                <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
-                  <div>
-                    <p className="text-xs font-medium text-slate-600 mb-1">DESCRIPTION</p>
-                    <p className="text-sm text-slate-700">
-                      {selectedNewsletter.description || "No description provided"}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs font-medium text-slate-600 mb-1">PAGES</p>
-                      <p className="text-sm text-slate-700">{selectedNewsletter.pageCount}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-600 mb-1">CATEGORY</p>
-                      <p className="text-sm text-slate-700">{selectedNewsletter.category}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-600 mb-1">FILE SIZE</p>
-                      <p className="text-sm text-slate-700">
-                        {(selectedNewsletter.fileSize / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-600 mb-1">PUBLISHED</p>
-                      <p className="text-sm text-slate-700">
-                        {new Date(selectedNewsletter.publishedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedNewsletter.isPaid && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                      <p className="text-xs font-medium text-yellow-700">Premium Content</p>
-                      <p className="text-xs text-yellow-600 mt-1">
-                        This newsletter is exclusive to paid subscribers
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Info: Web Only Shows Page 1 */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex gap-2">
-                    <Lock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900 mb-1">
-                        Full Access Available on Mobile App
-                      </p>
-                      <p className="text-xs text-blue-700">
-                        On the web platform, you can only preview the first page. Download our mobile app
-                        to access the complete newsletter.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Button */}
-                <Button
-                  onClick={() => {
-                    setDetailOpen(false);
-                    handleViewPDF(selectedNewsletter);
-                  }}
-                  className="w-full"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  View Preview
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* PDF Preview Dialog */}
-      {pdfOpen && selectedNewsletter && (
-        <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      {/* PDF Viewer Dialog */}
+      {viewingNewsletter && (
+        <Dialog open={!!viewingNewsletterId} onOpenChange={(open) => !open && setViewingNewsletterId(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle>{selectedNewsletter.title}</DialogTitle>
-              <DialogDescription>
-                Page {currentPageNumber} of {selectedNewsletter.pageCount}
-              </DialogDescription>
+              <DialogTitle>{viewingNewsletter.title}</DialogTitle>
             </DialogHeader>
 
-            {loadingPage ? (
-              <div className="flex items-center justify-center py-20 flex-1">
-                <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
-              </div>
-            ) : selectedPage ? (
-              <div className="flex-1 overflow-hidden flex flex-col">
-                {/* Page Image */}
-                <div className="flex-1 overflow-auto bg-slate-100 flex items-center justify-center">
-                  <img
-                    src={selectedPage.imageUrl}
-                    alt={`Page ${currentPageNumber}`}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-
-                {/* Navigation */}
-                <div className="border-t bg-white p-4 flex justify-between items-center">
-                  {currentPageNumber > 1 ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        dispatch(
-                          fetchNewsletterPage(
-                            selectedNewsletter.id,
-                            currentPageNumber - 1
-                          ) as any
-                        );
-                      }}
-                    >
-                      Previous Page
-                    </Button>
-                  ) : (
-                    <div />
-                  )}
-
-                  {currentPageNumber < selectedNewsletter.pageCount ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const nextPage = currentPageNumber + 1;
-                        if (nextPage === 2) {
-                          // Next page is 2+, show warning
-                          toast.error(
-                            "Full content is only available in our Mobile App. Download now to view the complete newsletter!",
-                            {
-                              duration: 5000,
-                            }
-                          );
-                        } else {
-                          dispatch(
-                            fetchNewsletterPage(
-                              selectedNewsletter.id,
-                              nextPage
-                            ) as any
-                          );
-                        }
-                      }}
-                    >
-                      Next Page
-                    </Button>
-                  ) : (
-                    <div />
-                  )}
-                </div>
-
-                {/* Mobile App Prompt */}
-                {currentPageNumber === 1 && selectedNewsletter.pageCount > 1 && (
-                  <div className="bg-amber-50 border-t border-amber-200 p-4">
-                    <div className="flex items-center gap-2">
-                      <Lock className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-900">
-                          Access complete newsletter on mobile app
-                        </p>
-                        <p className="text-xs text-amber-700 mt-1">
-                          Pages 2+ are only available in our mobile app. Download now to view the entire document.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center py-20 flex-1">
-                <p className="text-slate-600">Failed to load page preview</p>
-              </div>
-            )}
+            <div className="flex-1 overflow-auto">
+              <PDFViewer
+                url={`/api/newsletters/${viewingNewsletter.id}/pdf`}
+                title={viewingNewsletter.title}
+                isPaid={true}
+                showPageCount={true}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}
