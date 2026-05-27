@@ -11,6 +11,7 @@ import adminRoutes from "./api/routes/admin.js";
 import rolesRoutes from "./api/routes/roles.js";
 import communityRoutes from "./api/routes/community.js";
 import letterRoutes from "./api/routes/letters.js";
+import newsletterRoutes from "./api/routes/newsletters.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authMiddleware, optionalAuthMiddleware } from "./middleware/auth.js";
 import { rateLimit, authRateLimit, getRateLimitStats } from "./middleware/rateLimit.js";
@@ -121,6 +122,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", rolesRoutes);
+app.use("/api", newsletterRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/letters", letterRoutes);
 

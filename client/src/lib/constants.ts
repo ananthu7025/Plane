@@ -94,6 +94,25 @@ export const LETTERS_ENDPOINTS = {
   GET_LETTER_STATS: '/api/letters/admin/stats',
 } as const;
 
+export const NEWSLETTER_ENDPOINTS = {
+  // Web (Student) Endpoints
+  GET_NEWSLETTERS: '/api/newsletters/web',
+  GET_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}/web`,
+  GET_NEWSLETTER_PAGE: (id: string, pageNumber: number) => `/api/newsletters/${id}/pages/${pageNumber}/web`,
+
+  // Public Endpoints (no auth)
+  GET_PUBLIC_NEWSLETTERS: '/api/newsletters/public',
+  GET_PUBLIC_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}/public`,
+
+  // Admin Endpoints
+  GET_ADMIN_NEWSLETTERS: '/api/newsletters',
+  GET_ADMIN_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}`,
+  CREATE_NEWSLETTER: '/api/newsletters',
+  UPDATE_NEWSLETTER: (id: string) => `/api/newsletters/${id}`,
+  DELETE_NEWSLETTER: (id: string) => `/api/newsletters/${id}`,
+  TOGGLE_NEWSLETTER_STATUS: (id: string) => `/api/newsletters/${id}/status`,
+} as const;
+
 // Route Paths
 export const ROUTES = {
   HOME: '/',

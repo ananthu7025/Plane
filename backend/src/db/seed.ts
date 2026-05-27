@@ -66,6 +66,10 @@ async function seed() {
         { name: "DELETE_LETTER", module: "letters", description: "Can delete own letters" },
         { name: "APPROVE_LETTER", module: "letters", description: "Can approve letters" },
 
+        // Newsletter permissions
+        { name: "MANAGE_NEWSLETTERS", module: "newsletters", description: "Can manage newsletters" },
+        { name: "VIEW_NEWSLETTERS", module: "newsletters", description: "Can view newsletters" },
+
         // User management permissions
         { name: "BAN_USER", module: "users", description: "Can ban users" },
         { name: "UNBAN_USER", module: "users", description: "Can unban users" },
@@ -126,6 +130,8 @@ async function seed() {
         "PUBLISH_LETTER",
         "REVIEW_FLAGS",
         "RESPOND_FEEDBACK",
+        "MANAGE_NEWSLETTERS",
+        "VIEW_NEWSLETTERS",
       ];
 
       // Admin permissions - all

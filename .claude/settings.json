@@ -35,7 +35,22 @@
       "Bash(xargs grep -l \"export.*StatCard\\\\|component StatCard\")",
       "Bash(sqlite3 backend/prisma/dev.db \"SELECT r.id, r.name, p.name as permission FROM roles r LEFT JOIN role_permissions rp ON r.id = rp.roleId LEFT JOIN permissions p ON rp.permissionId = p.id WHERE r.name = ''ADMIN'' ORDER BY p.name;\")",
       "Bash(psql -U postgres -h localhost -d planeandprop -c \"SELECT r.id, r.name, STRING_AGG\\(p.name, '', '' ORDER BY p.name\\) as permissions FROM roles r LEFT JOIN role_permissions rp ON r.id = rp.roleId LEFT JOIN permissions p ON rp.permissionId = p.id WHERE r.name = ''ADMIN'' GROUP BY r.id, r.name;\")",
-      "Bash(npm run db:query \"SELECT r.name as role, GROUP_CONCAT\\(p.name, '', ''\\) as permissions FROM roles r LEFT JOIN role_permissions rp ON r.id = rp.roleId LEFT JOIN permissions p ON rp.permissionId = p.id WHERE r.name = ''ADMIN'' GROUP BY r.id, r.name;\")"
+      "Bash(npm run db:query \"SELECT r.name as role, GROUP_CONCAT\\(p.name, '', ''\\) as permissions FROM roles r LEFT JOIN role_permissions rp ON r.id = rp.roleId LEFT JOIN permissions p ON rp.permissionId = p.id WHERE r.name = ''ADMIN'' GROUP BY r.id, r.name;\")",
+      "Read(//c/Users/Anathapadmanabhan/Desktop/UI/src/pages/admin/**)",
+      "Read(//c/Users/Anathapadmanabhan/Desktop/UI/src/pages/student/**)",
+      "Bash(ls -1 c:UsersAnathapadmanabhanDesktopPlaneAndPropdocsNEWSLETTER*)",
+      "Bash(ls -lh /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/docs/NEWSLETTER*)",
+      "Bash(npm run build)",
+      "Bash(npm install multer cloudinary)",
+      "Bash(npm install -D @types/multer)",
+      "Bash(npx ts-node src/db/add-newsletter-perms.ts)",
+      "Bash(node --loader ts-node/esm src/db/add-newsletter-perms.ts)",
+      "Bash(node dist/db/add-newsletter-perms.js)",
+      "Bash(grep -l \"newsletters\" \"/c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/backend/src/db/migrations/meta\"/*.json)",
+      "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop)",
+      "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -c \"\\\\dt newsletters newsletter_pages\")",
+      "Bash(psql postgresql://postgres:root@localhost:5432/planeandprop -c \"SELECT table_name FROM information_schema.tables WHERE table_name IN \\(''newsletters'', ''newsletter_pages''\\);\")",
+      "Bash(npm run build --workspace=client)"
     ]
   }
 }

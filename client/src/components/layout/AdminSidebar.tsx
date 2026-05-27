@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   LogOut,
   FileCheck,
+  FileText,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { signOut } from "@/store/slices/authSlice";
@@ -40,6 +41,7 @@ const navGroups = [
     label: "Moderation",
     items: [
       { icon: FileCheck, label: "Letters", path: "/admin/letters" },
+      { icon: FileText, label: "Newsletters", path: "/admin/newsletters" },
     ],
   },
 ];

@@ -18,6 +18,8 @@ import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import EmailVerificationPage from "@/pages/auth/EmailVerificationPage";
 import Letters from "@/pages/student/Letters";
 import AdminLetters from "@/pages/admin/AdminLetters";
+import Newsletters from "@/pages/student/Newsletters";
+import AdminNewsletters from "@/pages/admin/AdminNewsletters";
 
 export interface RouteConfig {
   path: string;
@@ -84,6 +86,10 @@ export const studentRoutes: RouteConfig[] = [
         path: "letters",
         element: <Letters />,
       },
+      {
+        path: "newsletters",
+        element: <Newsletters />,
+      },
     ],
   },
 ];
@@ -118,6 +124,10 @@ export const adminRoutes: RouteConfig[] = [
       {
         path: "letters",
         element: <AdminLetters />,
+      },
+      {
+        path: "newsletters",
+        element: <AdminNewsletters />,
       },
     ],
   },

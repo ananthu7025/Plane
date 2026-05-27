@@ -5,6 +5,7 @@ import userManagementReducer from "./slices/userManagementSlice";
 import rolesReducer from "./slices/rolesSlice";
 import communityReducer from "./slices/communitySlice";
 import letterReducer from "./slices/letterSlice";
+import newsletterReducer from "./slices/newsletterSlice";
 import { setStore as setAxiosStore } from "@/api/client";
 
 /**
@@ -73,6 +74,7 @@ export const store = configureStore({
     roles: rolesReducer,
     community: communityReducer,
     letters: letterReducer,
+    newsletters: newsletterReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

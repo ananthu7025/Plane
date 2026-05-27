@@ -562,3 +562,82 @@ export const letterAcknowledgementsRelations = relations(
     }),
   })
 );
+
+// ============================================================================
+// NEWSLETTER TABLES
+// ============================================================================
+
+export const newsletters = pgTable(
+  "newsletters",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    category: varchar("category", { length: 100 }).notNull(),
+
+    // Cloudinary storage
+    cloudinaryPublicId: varchar("cloudinary_public_id", { length: 255 }).notNull(),
+    cloudinaryUrl: varchar("cloudinary_url", { length: 500 }).notNull(),
+    cloudinaryThumbnail: varchar("cloudinary_thumbnail", { length: 500 }),
+
+    // File metadata
+    fileSize: bigint("file_size", { mode: "number" }).notNull(),
+    pageCount: integer("page_count").notNull(),
+
+    // Access control
+    isPaid: boolean("is_paid").notNull().default(true),
+
+    // Status management
+    status: varchar("status", { length: 20 }).notNull().default("published"),
+
+    // Metadata
+    uploadedBy: uuid("uploaded_by").notNull(),
+    publishedAt: timestamp("published_at").defaultNow().notNull(),
+    archivedAt: timestamp("archived_at"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => ({
+    statusIdx: index("newsletters_status_idx").on(table.status),
+    categoryIdx: index("newsletters_category_idx").on(table.category),
+    isPaidIdx: index("newsletters_is_paid_idx").on(table.isPaid),
+    publishedIdx: index("newsletters_published_at_idx").on(table.publishedAt),
+    uploadedByIdx: index("newsletters_uploaded_by_idx").on(table.uploadedBy),
+  })
+);
+
+export const newsletterPages = pgTable(
+  "newsletter_pages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    newsletterId: uuid("newsletter_id").notNull(),
+    pageNumber: integer("page_number").notNull(),
+    cloudinaryImageUrl: varchar("cloudinary_image_url", { length: 500 }).notNull(),
+    cloudinaryPublicId: varchar("cloudinary_public_id", { length: 255 }).notNull(),
+    pageText: text("page_text"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueIdx: uniqueIndex("newsletter_pages_unique_idx").on(table.newsletterId, table.pageNumber),
+    lookupIdx: index("newsletter_pages_lookup_idx").on(table.newsletterId, table.pageNumber),
+  })
+);
+
+// Newsletter Relations
+export const newslettersRelations = relations(newsletters, ({ one, many }) => ({
+  uploadedByUser: one(users, { fields: [newsletters.uploadedBy], references: [users.id] }),
+  pages: many(newsletterPages),
+}));
+
+export const newsletterPagesRelations = relations(newsletterPages, ({ one }) => ({
+  newsletter: one(newsletters, { fields: [newsletterPages.newsletterId], references: [newsletters.id] }),
+}));
+
+// Types
+export type Newsletter = typeof newsletters.$inferSelect;
+export type NewsletterInsert = typeof newsletters.$inferInsert;
+export type NewsletterPage = typeof newsletterPages.$inferSelect;
+export type NewsletterPageInsert = typeof newsletterPages.$inferInsert;
