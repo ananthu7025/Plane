@@ -56,7 +56,6 @@ const createStorage = () => {
 const persistConfig = {
   key: "auth",
   storage: createStorage(),
-  throttle: 1000, // Write to localStorage at most once per second
 };
 
 /**

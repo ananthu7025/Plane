@@ -62,6 +62,9 @@ const createAxiosInstance = (): AxiosInstance => {
   const instance = axios.create({
     baseURL: API_BASE_URL,
     timeout: 30000,
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 
   instance.interceptors.request.use(
@@ -81,21 +84,11 @@ const createAxiosInstance = (): AxiosInstance => {
         } else {
           console.warn("[AUTH] Store not initialized!");
         }
-
-        // Don't override Content-Type for binary responses (PDFs, files)
-        if (config.responseType !== "arraybuffer" && config.responseType !== "blob") {
-          if (!config.headers["Content-Type"]) {
-            config.headers["Content-Type"] = "application/json";
-          }
-        }
-
-        // Add CSRF token only if it exists and is valid
-        const csrfElement = document.querySelector('meta[name="csrf-token"]');
-        if (csrfElement) {
-          const csrfToken = csrfElement.getAttribute("content");
-          if (csrfToken && typeof csrfToken === "string" && csrfToken.trim()) {
-            config.headers["X-CSRF-Token"] = csrfToken;
-          }
+        const csrfToken = document
+          .querySelector('meta[name="csrf-token"]')
+          ?.getAttribute("content");
+        if (csrfToken) {
+          config.headers["X-CSRF-Token"] = csrfToken;
         }
       } catch (error) {
         console.log(error);

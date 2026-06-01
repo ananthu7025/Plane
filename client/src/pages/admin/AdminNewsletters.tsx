@@ -6,14 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Plus, Trash2, Edit2, Upload, Archive, Eye } from "lucide-react";
+import { Loader2, Search, Plus, Trash2, Edit2, Upload, Archive, Eye, ExternalLink } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import PermissionGate from "@/components/common/PermissionGate";
-import PDFViewer from "@/components/PDFViewer";
 import { DeleteConfirmDialog } from "@/components/shared";
 import { InputText } from "@/components/ui/input-text";
+import { axiosInstance } from "@/api/client";
 import { InputSelect } from "@/components/ui/input-select";
 import { InputTextarea } from "@/components/ui/input-textarea";
 import { Permissions } from "@/lib/permissions";
@@ -711,16 +711,34 @@ export default function AdminNewsletters() {
       {/* PDF Viewer Modal */}
       {viewingNewsletter && (
         <Dialog open={!!viewingNewsletterId} onOpenChange={(open) => !open && setViewingNewsletterId(null)}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{viewingNewsletter.title}</DialogTitle>
             </DialogHeader>
 
-            <div className="flex-1 overflow-auto">
-              <PDFViewer
-                url={`/api/newsletters/${viewingNewsletter.id}/pdf`}
-                title={viewingNewsletter.title}
-              />
+            <div className="space-y-4">
+              <p className="text-slate-600 text-sm">
+                Click the button below to open the PDF in a new window
+              </p>
+              <Button
+                onClick={async () => {
+                  try {
+                    const response = await axiosInstance.get(
+                      `/api/newsletters/${viewingNewsletter.id}/pdf`,
+                      { responseType: 'blob' }
+                    );
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                  } catch {
+                    toast.error('Failed to open PDF');
+                  }
+                }}
+                className="w-full gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open PDF in New Window
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

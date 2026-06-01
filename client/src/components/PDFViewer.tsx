@@ -23,6 +23,7 @@ export default function PDFViewer({
   const blobUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
+    console.log("[PDFViewer] useEffect triggered with url:", url);
     mountedRef.current = true;
 
     const loadPdf = async () => {

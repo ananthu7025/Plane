@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search } from "lucide-react";
-import PDFViewer from "@/components/PDFViewer";
+import { Search, ExternalLink } from "lucide-react";
 import { NewslettersList } from "@/components/NewslettersList";
 import { NEWSLETTER_CATEGORIES_LIST } from "@/lib/constants";
+import { axiosInstance } from "@/api/client";
 import {
   Dialog,
   DialogContent,
@@ -188,16 +188,34 @@ export default function Newsletters() {
           open={!!viewingNewsletterId}
           onOpenChange={(open) => !open && setViewingNewsletterId(null)}
         >
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{viewingNewsletter.title}</DialogTitle>
             </DialogHeader>
 
-            <div className="flex-1 overflow-auto">
-              <PDFViewer
-                url={`/api/newsletters/${viewingNewsletter.id}/pdf`}
-                title={viewingNewsletter.title}
-              />
+            <div className="space-y-4">
+              <p className="text-slate-600 text-sm">
+                Click the button below to open the PDF in a new window
+              </p>
+              <Button
+                onClick={async () => {
+                  try {
+                    const response = await axiosInstance.get(
+                      `/api/newsletters/${viewingNewsletter.id}/pdf`,
+                      { responseType: 'blob' }
+                    );
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                  } catch {
+                    toast.error('Failed to open PDF');
+                  }
+                }}
+                className="w-full gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open PDF in New Window
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
