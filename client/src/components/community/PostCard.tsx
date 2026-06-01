@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DeleteConfirmDialog } from "@/components/shared";
-import type { Post } from "@/store/slices/communitySlice";
+import type { Post, Reply } from "@/store/slices/communitySlice";
 import { ANIMATION_VARIANTS } from "@/lib/communityConstants";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
