@@ -1,23 +1,21 @@
-import express from "express";
+import "dotenv/config";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import express from "express";
 import "express-async-errors";
-import "dotenv/config";
-
+import { pool } from "./db/index.js";
+import { logger } from "./utils/logger.js";
 import authRoutes from "./api/routes/auth.js";
 import userRoutes from "./api/routes/user.js";
 import adminRoutes from "./api/routes/admin.js";
 import rolesRoutes from "./api/routes/roles.js";
-import communityRoutes from "./api/routes/community.js";
 import letterRoutes from "./api/routes/letters.js";
+import communityRoutes from "./api/routes/community.js";
 import newsletterRoutes from "./api/routes/newsletters.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import { authMiddleware, optionalAuthMiddleware } from "./middleware/auth.js";
-import { rateLimit, authRateLimit, getRateLimitStats } from "./middleware/rateLimit.js";
-import { logger } from "./utils/logger.js";
+import { rateLimit, getRateLimitStats } from "./middleware/rateLimit.js";
 import { startEmailProcessor, getEmailQueueStatus } from "./utils/emailService.js";
-import { pool } from "./db/index.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,13 +36,18 @@ app.use((req: any, res: any, next) => {
 });
 
 // ========== Security & CORS Middleware ==========
-app.use(helmet());
+// Helmet with reduced headers to avoid PDF.js issues
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Content-Length", "Content-Type", "Content-Disposition"],
   })
 );
 
@@ -70,8 +73,8 @@ app.use(
 );
 
 // ========== Body Parsers ==========
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(express.json({ limit: "200mb" }));
+app.use(express.urlencoded({ limit: "200mb", extended: true }));
 
 // ========== Rate Limiting ==========
 // Global rate limit: 100 requests per minute per IP
@@ -122,7 +125,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", rolesRoutes);
-app.use("/api", newsletterRoutes);
+app.use("/api/newsletters", newsletterRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/letters", letterRoutes);
 

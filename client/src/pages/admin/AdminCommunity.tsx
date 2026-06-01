@@ -14,6 +14,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard, DeleteConfirmDialog } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   MessageSquare,
   Clock,
   Search,
@@ -64,21 +72,21 @@ const { container: containerVariants, item: itemVariants } = ANIMATION_VARIANTS;
 export function AdminCommunity() {
   const dispatch = useAppDispatch();
   const {
-    moderationPosts,
-    posts,
-    categories,
-    bannedUsers,
+    moderationPosts = [],
+    posts = [],
+    categories = [],
+    bannedUsers = [],
     postsPagination,
     bannedUsersPagination,
     filters,
-    loading,
-    creatingCategory,
+    loading = false,
+    creatingCategory = false,
     error,
     successMessage,
-  } = useAppSelector((state) => state.community);
+  } = useAppSelector((state) => state.community) || {};
 
-  const canApprove = usePermission(Permissions.APPROVE_POST);
-  const canReject = usePermission(Permissions.REJECT_POST);
+  const canApprove = usePermission(Permissions.MODERATE_POSTS);
+  const canReject = usePermission(Permissions.MODERATE_POSTS);
   const canBan = usePermission(Permissions.BAN_USER);
 
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
@@ -98,6 +106,9 @@ export function AdminCommunity() {
     null,
   );
   const [banUserDialogOpen, setBanUserDialogOpen] = useState<string | null>(
+    null,
+  );
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState<string | null>(
     null,
   );
 
@@ -142,9 +153,10 @@ export function AdminCommunity() {
     dispatch(setFilters({ search: searchQuery, page: 1 }));
   };
 
-  const handleApprove = async (postId: string) => {
+  const handleApproveConfirm = async (postId: string) => {
     try {
       await dispatch(approvePost(postId));
+      setApproveConfirmOpen(null);
       // Refresh moderation posts
       dispatch(
         getPostsForModeration({
@@ -330,7 +342,7 @@ export function AdminCommunity() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Community Categories</CardTitle>
-                  <PermissionGate permission={Permissions.APPROVE_POST}>
+                  <PermissionGate permission={Permissions.MANAGE_COMMUNITY}>
                     <Button
                       size="sm"
                       onClick={() => setIsCategoryDialogOpen(true)}
@@ -435,7 +447,7 @@ export function AdminCommunity() {
                             {new Date(user.bannedAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <PermissionGate permission={Permissions.UNBAN_USER}>
+                        <PermissionGate permission={Permissions.BAN_USER}>
                           <Button
                             variant="outline"
                             size="sm"
@@ -533,11 +545,11 @@ export function AdminCommunity() {
                           key={post.id}
                           post={post}
                           isModeration={mainView === "moderate"}
-                          onApprove={canApprove ? () => handleApprove(post.id) : undefined}
-                          onDecline={canReject ? () => setDeclineReasonDialogOpen(post.id) : undefined}
-                          onDelete={() => setDeletePostConfirmOpen(post.id)}
-                          onBanAuthor={canBan ? () => setBanUserDialogOpen(post.author?.id || "") : undefined}
-                          onViewDetails={() => setViewPostDetailsOpen(post.id)}
+                          onApprove={canApprove ? (postId: string) => setApproveConfirmOpen(postId) : undefined}
+                          onDecline={canReject ? (postId: string) => setDeclineReasonDialogOpen(postId) : undefined}
+                          onDelete={(postId: string) => setDeletePostConfirmOpen(postId)}
+                          onBanAuthor={canBan ? (userId: string) => setBanUserDialogOpen(userId) : undefined}
+                          onViewDetails={(postId: string) => setViewPostDetailsOpen(postId)}
                           isLoading={loading}
                         />
                       ))}
@@ -548,59 +560,84 @@ export function AdminCommunity() {
             </motion.div>
           </div>
         )}
-        <AdminCategoryDialog
-          isOpen={isCategoryDialogOpen}
-          onClose={() => setIsCategoryDialogOpen(false)}
-          onSubmit={({ name, description }) => {
-            handleAddCategory(name, description || "");
-          }}
-          isLoading={creatingCategory}
-        />
-        <AdminReasonDialog
-          isOpen={!!declineReasonDialogOpen}
-          title="Decline Post"
-          label="Reason for Decline"
-          placeholder="Explain why this post is being declined..."
-          confirmText="Decline"
-          onClose={() => setDeclineReasonDialogOpen(null)}
-          onSubmit={(reason) => {
-            handleDecline(declineReasonDialogOpen || "", reason);
-          }}
-          isLoading={loading}
-        />
-        <AdminReasonDialog
-          isOpen={!!banUserDialogOpen}
-          title="Ban User"
-          label="Ban Reason"
-          placeholder="Explain why this user is being banned..."
-          confirmText="Ban User"
-          onClose={() => setBanUserDialogOpen(null)}
-          onSubmit={(reason) => {
-            handleBanUser(banUserDialogOpen || "", reason);
-          }}
-          isLoading={loading}
-        />
-        <DeleteConfirmDialog
-          isOpen={!!deletePostConfirmOpen}
-          title="Delete Post"
-          itemName="this post"
-          isDeleting={loading}
-          onConfirm={async () => {
-            if (deletePostConfirmOpen) {
-              await handleDeletePost(deletePostConfirmOpen);
-              setDeletePostConfirmOpen(null);
-            }
-          }}
-          onCancel={() => setDeletePostConfirmOpen(null)}
-        />
-        {viewPostDetailsOpen &&
-          moderationPosts.find((p) => p.id === viewPostDetailsOpen) && (
-            <PostDetailsModal
-              postId={viewPostDetailsOpen}
-              onClose={() => setViewPostDetailsOpen(null)}
-            />
-          )}
       </motion.div>
+
+      {/* Dialogs - Outside motion wrapper */}
+      <AdminCategoryDialog
+        isOpen={isCategoryDialogOpen}
+        onClose={() => setIsCategoryDialogOpen(false)}
+        onSubmit={({ name, description }) => {
+          handleAddCategory(name, description || "");
+        }}
+        isLoading={creatingCategory}
+      />
+      <Dialog open={!!approveConfirmOpen} onOpenChange={(open) => {
+        if (!open) setApproveConfirmOpen(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Post?</DialogTitle>
+            <DialogDescription>
+              This post will be approved and published to the community feed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveConfirmOpen(null)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleApproveConfirm(approveConfirmOpen || "")}
+              disabled={loading}
+            >
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AdminReasonDialog
+        isOpen={!!declineReasonDialogOpen}
+        title="Decline Post"
+        label="Reason for Decline"
+        placeholder="Explain why this post is being declined..."
+        confirmText="Decline"
+        onClose={() => setDeclineReasonDialogOpen(null)}
+        onSubmit={(reason) => {
+          handleDecline(declineReasonDialogOpen || "", reason);
+        }}
+        isLoading={loading}
+      />
+      <AdminReasonDialog
+        isOpen={!!banUserDialogOpen}
+        title="Ban User"
+        label="Ban Reason"
+        placeholder="Explain why this user is being banned..."
+        confirmText="Ban User"
+        onClose={() => setBanUserDialogOpen(null)}
+        onSubmit={(reason) => {
+          handleBanUser(banUserDialogOpen || "", reason);
+        }}
+        isLoading={loading}
+      />
+      <DeleteConfirmDialog
+        isOpen={!!deletePostConfirmOpen}
+        title="Delete Post"
+        itemName="this post"
+        isDeleting={loading}
+        onConfirm={async () => {
+          if (deletePostConfirmOpen) {
+            await handleDeletePost(deletePostConfirmOpen);
+            setDeletePostConfirmOpen(null);
+          }
+        }}
+        onCancel={() => setDeletePostConfirmOpen(null)}
+      />
+      {viewPostDetailsOpen &&
+        moderationPosts.find((p) => p.id === viewPostDetailsOpen) && (
+          <PostDetailsModal
+            postId={viewPostDetailsOpen}
+            onClose={() => setViewPostDetailsOpen(null)}
+          />
+        )}
     </TooltipProvider>
   );
 }

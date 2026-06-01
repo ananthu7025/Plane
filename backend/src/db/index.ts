@@ -1,16 +1,18 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema.js";
+import config from "../config/index.js";
 
 // Production-ready connection pool configuration
 // Tuned for 5k users/day (~200 req/min sustained)
+// All settings centralized from config
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:root@localhost:5432/planeandprop",
-  // Connection pool sizing
-  max: parseInt(process.env.DB_POOL_MAX || "20"), // Max connections: tuned for 5k users
-  min: parseInt(process.env.DB_POOL_MIN || "5"), // Min idle connections
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || "30000"), // Close idle connections after 30s
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || "2000"), // Fail fast if no connection available
+  connectionString: config.DATABASE_URL,
+  // Connection pool sizing (centralized from config)
+  max: config.DB_POOL_MAX, // Max connections: tuned for 5k users
+  min: config.DB_POOL_MIN, // Min idle connections
+  idleTimeoutMillis: config.DB_IDLE_TIMEOUT, // Close idle connections after 30s
+  connectionTimeoutMillis: config.DB_CONNECTION_TIMEOUT, // Fail fast if no connection available
   // Application name for better PostgreSQL monitoring
   application_name: "plane_prop_api",
 });

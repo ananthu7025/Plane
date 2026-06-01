@@ -65,7 +65,7 @@ export type SignOutData = {
 export type SignUpRequest = {
   email: string;
   password: string;
-  full_name: string;
+  fullName: string;
 };
 
 export type SignInRequest = {

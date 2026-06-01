@@ -55,7 +55,9 @@ export function AdminPostCard({
               <h4 className="font-medium line-clamp-1">
                 {post.title}
               </h4>
-              <Badge variant="muted">{post.category}</Badge>
+              <Badge variant="muted">
+                {typeof post.category === "string" ? post.category : post.category?.name || "Uncategorized"}
+              </Badge>
               {isModeration && (
                 <Badge
                   variant={

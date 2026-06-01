@@ -30,7 +30,7 @@ import { ConfirmPasswordField } from "@/components/ui/confirm-password-field";
 import { AuthSubmitButton } from "@/components/auth/buttons/AuthSubmitButton";
 
 type SignUpFormData = {
-  full_name: string;
+  fullName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -47,7 +47,7 @@ export default function SignUpPage() {
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      full_name: "",
+      fullName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -70,7 +70,7 @@ export default function SignUpPage() {
     try {
       await dispatch(
         signUp({
-          full_name: data.full_name,
+          fullName: data.fullName,
           email: data.email,
           password: data.password,
         }) as any,
@@ -122,7 +122,7 @@ export default function SignUpPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <InputText
               hookForm={form}
-              field="full_name"
+              field="fullName"
               label="Full Name"
               placeholder="Your real name"
               icon={<User className="w-5 h-5" />}
@@ -149,7 +149,7 @@ export default function SignUpPage() {
               hookForm={form}
               field="password"
               label="Password"
-              placeholder="Min 8 chars, 1 uppercase, 1 number, 1 special"
+              placeholder="Min 8 chars, 1 uppercase, 1 number"
               showPassword={showPassword}
               onToggleShow={() => setShowPassword(!showPassword)}
               disabled={isLoading}

@@ -28,6 +28,7 @@ import {
   createRole,
   updateRole,
   deleteRole,
+  createPermission,
 } from "@/store/slices/rolesSlice";
 import { PermissionCheckboxGroup } from "@/components/admin";
 import { StatCard } from "@/components/shared";
@@ -46,9 +47,9 @@ const itemVariants = {
 
 export function AdminRoles() {
   const dispatch = useAppDispatch();
-  const { roles, permissions, loading, updating } = useAppSelector(
+  const { roles = [], permissions = [], loading = false, updating = false } = useAppSelector(
     (state) => state.roles,
-  );
+  ) || {};
 
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
@@ -64,6 +65,13 @@ export function AdminRoles() {
   const [roleFormPermissions, setRoleFormPermissions] = useState<number[]>([]);
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
+
+  // Permission creation state
+  const [isCreatePermissionDialogOpen, setIsCreatePermissionDialogOpen] = useState(false);
+  const [permissionName, setPermissionName] = useState("");
+  const [permissionDescription, setPermissionDescription] = useState("");
+  const [permissionModule, setPermissionModule] = useState("");
+  const [isCreatingPermission, setIsCreatingPermission] = useState(false);
 
   useEffect(() => {
     dispatch(getAllRoles() as never);
@@ -177,6 +185,45 @@ export function AdminRoles() {
     dispatch(getAllRoles() as never);
   };
 
+  const handleCreatePermission = async () => {
+    if (!permissionName.trim()) {
+      toast.error("Permission name is required");
+      return;
+    }
+    if (!permissionModule.trim()) {
+      toast.error("Module is required");
+      return;
+    }
+
+    setIsCreatingPermission(true);
+    try {
+      await dispatch(
+        createPermission({
+          name: permissionName,
+          description: permissionDescription,
+          module: permissionModule,
+        }) as never
+      );
+      setPermissionName("");
+      setPermissionDescription("");
+      setPermissionModule("");
+      setIsCreatePermissionDialogOpen(false);
+      toast.success("Permission created successfully");
+      dispatch(getAllPermissions() as never);
+    } catch (error) {
+      toast.error("Failed to create permission");
+    } finally {
+      setIsCreatingPermission(false);
+    }
+  };
+
+  const closePermissionDialog = () => {
+    setIsCreatePermissionDialogOpen(false);
+    setPermissionName("");
+    setPermissionDescription("");
+    setPermissionModule("");
+  };
+
   return (
     <motion.div
       variants={containerVariants}
@@ -197,10 +244,20 @@ export function AdminRoles() {
             Manage user roles and permissions
           </p>
         </div>
-        <Button onClick={openCreateRoleDialog} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Create Role
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={openCreateRoleDialog} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Create Role
+          </Button>
+          <Button
+            onClick={() => setIsCreatePermissionDialogOpen(true)}
+            variant="outline"
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Create Permission
+          </Button>
+        </div>
       </motion.div>
       <motion.div
         variants={itemVariants}
@@ -407,6 +464,69 @@ export function AdminRoles() {
               disabled={updating}
             >
               {updating ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Permission Dialog */}
+      <Dialog
+        open={isCreatePermissionDialogOpen}
+        onOpenChange={closePermissionDialog}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Permission</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="perm-name">Permission Name</Label>
+              <Input
+                id="perm-name"
+                placeholder="e.g., CREATE_LETTER"
+                value={permissionName}
+                onChange={(e) => setPermissionName(e.target.value)}
+                disabled={isCreatingPermission}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-module">Module</Label>
+              <Input
+                id="perm-module"
+                placeholder="e.g., letters, roles, users"
+                value={permissionModule}
+                onChange={(e) => setPermissionModule(e.target.value)}
+                disabled={isCreatingPermission}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-description">Description (Optional)</Label>
+              <Textarea
+                id="perm-description"
+                placeholder="Describe what this permission allows..."
+                value={permissionDescription}
+                onChange={(e) => setPermissionDescription(e.target.value)}
+                disabled={isCreatingPermission}
+                className="mt-2"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closePermissionDialog}
+              disabled={isCreatingPermission}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreatePermission}
+              disabled={isCreatingPermission}
+            >
+              {isCreatingPermission ? "Creating..." : "Create Permission"}
             </Button>
           </DialogFooter>
         </DialogContent>

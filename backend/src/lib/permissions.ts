@@ -1,0 +1,58 @@
+/**
+ * Permission Constants (Redesigned - 30 permissions)
+ * Centralized permissions enum for use across backend routes
+ * Must match database permissions and frontend permissions.ts
+ *
+ * IMPORTANT: Always use this enum, NEVER hardcode permission strings
+ */
+
+export const Permissions = {
+  // Posts (5)
+  CREATE_POST: "CREATE_POST",
+  EDIT_OWN_POST: "EDIT_OWN_POST",
+  DELETE_OWN_POST: "DELETE_OWN_POST",
+  MODERATE_POSTS: "MODERATE_POSTS",
+  VIEW_POST: "VIEW_POST",
+
+  // Comments (5)
+  CREATE_COMMENT: "CREATE_COMMENT",
+  EDIT_OWN_COMMENT: "EDIT_OWN_COMMENT",
+  DELETE_OWN_COMMENT: "DELETE_OWN_COMMENT",
+  MODERATE_COMMENTS: "MODERATE_COMMENTS",
+  APPROVE_COMMENT: "APPROVE_COMMENT", // Legacy alias
+
+  // Letters (6)
+  CREATE_LETTER: "CREATE_LETTER",
+  EDIT_OWN_LETTER: "EDIT_OWN_LETTER",
+  DELETE_OWN_LETTER: "DELETE_OWN_LETTER",
+  MODERATE_LETTERS: "MODERATE_LETTERS",
+  PUBLISH_LETTER: "PUBLISH_LETTER",
+  DELETE_LETTER: "DELETE_LETTER",
+
+  // Newsletters (2)
+  MANAGE_NEWSLETTERS: "MANAGE_NEWSLETTERS",
+  VIEW_NEWSLETTERS: "VIEW_NEWSLETTERS",
+
+  // User Management (5)
+  MANAGE_USERS: "MANAGE_USERS",
+  VIEW_USERS: "VIEW_USERS",
+  MANAGE_PROFILES: "MANAGE_PROFILES",
+  SUSPEND_USER: "SUSPEND_USER",
+  BAN_USER: "BAN_USER", // Legacy alias
+
+  // Community (2)
+  MANAGE_COMMUNITY: "MANAGE_COMMUNITY",
+  MODERATE_COMMUNITY: "MODERATE_COMMUNITY",
+
+  // Moderation & Flags (2)
+  FLAG_CONTENT: "FLAG_CONTENT",
+  REVIEW_FLAGS: "REVIEW_FLAGS",
+
+  // System & Admin (4)
+  MANAGE_ROLES: "MANAGE_ROLES",
+  MANAGE_PERMISSIONS: "MANAGE_PERMISSIONS",
+  MANAGE_SETTINGS: "MANAGE_SETTINGS",
+  VIEW_LOGS: "VIEW_LOGS",
+} as const;
+
+export type Permission = typeof Permissions[keyof typeof Permissions];

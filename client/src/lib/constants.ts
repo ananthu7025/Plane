@@ -71,23 +71,23 @@ export const COMMUNITY_ENDPOINTS = {
   DELETE_REPLY_ADMIN: (postId: string, replyId: string) => `/api/community/admin/posts/${postId}/replies/${replyId}`,
 
   // Admin - Ban Management
-  BAN_USER: (userId: string) => `/api/community/admin/users/${userId}/ban`,
-  UNBAN_USER: (userId: string) => `/api/community/admin/users/${userId}/unban`,
-  GET_BANNED_USERS: '/api/community/admin/banned-users',
+  BAN_USER: '/api/community/users/ban',
+  UNBAN_USER: '/api/community/users/unban',
+  GET_BANNED_USERS: '/api/community/banned-users',
 } as const;
 
 export const LETTERS_ENDPOINTS = {
   // Student Endpoints
-  GET_PUBLIC_LETTERS: '/api/letters',
+  CREATE_LETTER: '/api/letters/submit',
+  GET_PUBLIC_LETTERS: '/api/letters/feed',
   GET_LETTER_DETAIL: (letterId: string) => `/api/letters/${letterId}`,
-  CREATE_LETTER: '/api/letters',
+  GET_MY_LETTERS: '/api/letters/my-letters',
   RESUBMIT_LETTER: (letterId: string) => `/api/letters/${letterId}/resubmit`,
-  GET_MY_LETTERS: '/api/letters/user/my-letters',
-  TOGGLE_LIKE: (letterId: string) => `/api/letters/${letterId}/acknowledge`,
+  TOGGLE_LIKE: (letterId: string) => `/api/letters/${letterId}/like`,
   GET_LETTER_VERSIONS: (letterId: string) => `/api/letters/${letterId}/versions`,
 
   // Admin Endpoints
-  GET_MODERATION_QUEUE: '/api/letters/admin/queue',
+  GET_MODERATION_QUEUE: '/api/letters/moderation/pending',
   APPROVE_LETTER: (letterId: string) => `/api/letters/${letterId}/approve`,
   REJECT_LETTER: (letterId: string) => `/api/letters/${letterId}/reject`,
   DELETE_LETTER: (letterId: string) => `/api/letters/${letterId}`,
@@ -95,21 +95,18 @@ export const LETTERS_ENDPOINTS = {
 } as const;
 
 export const NEWSLETTER_ENDPOINTS = {
-  // Web (Student) Endpoints
-  GET_NEWSLETTERS: '/api/newsletters/web',
-  GET_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}/web`,
-
-  // Public Endpoints (no auth)
-  GET_PUBLIC_NEWSLETTERS: '/api/newsletters/public',
-  GET_PUBLIC_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}/public`,
-
   // Admin Endpoints
-  GET_ADMIN_NEWSLETTERS: '/api/newsletters',
-  GET_ADMIN_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}`,
-  CREATE_NEWSLETTER: '/api/newsletters',
-  UPDATE_NEWSLETTER: (id: string) => `/api/newsletters/${id}`,
-  DELETE_NEWSLETTER: (id: string) => `/api/newsletters/${id}`,
-  TOGGLE_NEWSLETTER_STATUS: (id: string) => `/api/newsletters/${id}/status`,
+  CREATE_NEWSLETTER: '/api/newsletters/admin/create',
+  GET_ADMIN_NEWSLETTERS: '/api/newsletters/admin/list',
+  GET_ADMIN_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/admin/${id}`,
+  UPDATE_NEWSLETTER: (id: string) => `/api/newsletters/admin/${id}`,
+  DELETE_NEWSLETTER: (id: string) => `/api/newsletters/admin/${id}`,
+  TOGGLE_NEWSLETTER_STATUS: (id: string) => `/api/newsletters/admin/${id}/status`,
+
+  // Student Endpoints
+  GET_NEWSLETTERS: '/api/newsletters/list',
+  GET_NEWSLETTER_DETAIL: (id: string) => `/api/newsletters/${id}`,
+  CHECK_NEWSLETTER_ACCESS: (id: string) => `/api/newsletters/${id}/access`,
 } as const;
 
 // Route Paths
@@ -169,4 +166,47 @@ export const TOAST_MESSAGES = {
   PASSWORD_RESET_SUCCESS: 'Password reset successfully. Sign in with your new password.',
   LOGOUT_SUCCESS: 'Logged out successfully.',
   OTP_RESENT: 'Verification code resent to your email.',
+} as const;
+
+// Newsletter Constants
+export const NEWSLETTER_CATEGORIES = {
+  ALL: 'All',
+  AVIATION_NEWS: 'Aviation News',
+  SAFETY_TIPS: 'Safety Tips',
+  INDUSTRY_UPDATES: 'Industry Updates',
+} as const;
+
+export const NEWSLETTER_CATEGORIES_LIST = Object.values(NEWSLETTER_CATEGORIES);
+
+export const NEWSLETTER_STATUSES = {
+  PUBLISHED: 'published',
+  ARCHIVED: 'archived',
+  DRAFT: 'draft',
+} as const;
+
+export const NEWSLETTER_STATUSES_LIST = Object.values(NEWSLETTER_STATUSES);
+
+export const NEWSLETTER_STATUS_FILTER_OPTIONS = [
+  'all',
+  NEWSLETTER_STATUSES.PUBLISHED,
+  NEWSLETTER_STATUSES.ARCHIVED,
+  NEWSLETTER_STATUSES.DRAFT,
+] as const;
+
+// File Upload Configuration
+export const FILE_UPLOAD_CONFIG = {
+  PDF_MAX_SIZE: 50 * 1024 * 1024, // 50MB
+  PDF_MIME_TYPE: 'application/pdf',
+} as const;
+
+// Pagination
+export const PAGINATION = {
+  STUDENT_LIMIT: 10,
+  ADMIN_LIMIT: 20,
+  DEFAULT_PAGE: 1,
+} as const;
+
+// Cache Control
+export const CACHE_CONTROL = {
+  PDF_CACHE_AGE: 3600, // 1 hour in seconds
 } as const;

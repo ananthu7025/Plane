@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,34 +26,48 @@ import {
   setModerationPage,
 } from "@/store/slices/letterSlice";
 import { AdminReasonDialog } from "@/components/community";
+import { DeleteConfirmDialog } from "@/components/shared";
 
 export default function AdminLetters() {
   const dispatch = useAppDispatch();
 
   // Redux state
   const {
-    moderationLetters,
-    moderationPage,
+    moderationLetters = [],
+    moderationPage = 1,
     moderationPagination,
-    moderationStatus,
+    moderationStatus = "PENDING",
     stats,
-    loadingModerationQueue,
-    approvingLetter,
-    rejectingLetter,
-    deletingLetter,
+    loadingModerationQueue = false,
+    approvingLetter = false,
+    rejectingLetter = false,
+    deletingLetter = false,
     error,
     successMessage,
-  } = useAppSelector((state) => state.letters);
+  } = useAppSelector((state) => state.letters) || {};
 
-  const canApprove = usePermission(Permissions.APPROVE_LETTER);
+  const canApprove = usePermission(Permissions.MODERATE_LETTERS);
 
   // Local UI state
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [viewLetterOpen, setViewLetterOpen] = useState<string | null>(null);
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState<string | null>(null);
+  const [rejectReasonDialogOpen, setRejectReasonDialogOpen] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    open: boolean;
+    letterId: string | null;
+  }>({
+    open: false,
+    letterId: null,
+  });
+
+  // Prevent duplicate API calls and toasts in Strict Mode
+  const shownMessagesRef = useRef<Set<string>>(new Set());
+  const lastFetchRef = useRef<{ page: number; status: string } | null>(null);
 
   // Toast notifications
   useEffect(() => {
-    if (successMessage) {
+    if (successMessage && !shownMessagesRef.current.has(successMessage)) {
+      shownMessagesRef.current.add(successMessage);
       toast.success(successMessage);
       dispatch(clearSuccessMessage());
     }
@@ -66,29 +80,60 @@ export default function AdminLetters() {
     }
   }, [error, dispatch]);
 
-  // Load moderation queue and stats
+  // Load moderation queue and stats (prevent duplicate calls in Strict Mode)
   useEffect(() => {
-    dispatch(
-      fetchModerationQueue({
-        page: moderationPage,
-        status: moderationStatus,
-      }) as any
-    );
-    dispatch(fetchLetterStats() as any);
+    const currentFetch = { page: moderationPage, status: moderationStatus };
+    const lastFetch = lastFetchRef.current;
+
+    // Only fetch if parameters have changed or this is the first fetch
+    if (
+      !lastFetch ||
+      lastFetch.page !== currentFetch.page ||
+      lastFetch.status !== currentFetch.status
+    ) {
+      lastFetchRef.current = currentFetch;
+      dispatch(
+        fetchModerationQueue({
+          page: moderationPage,
+          status: moderationStatus,
+        }) as any
+      );
+      dispatch(fetchLetterStats() as any);
+    }
   }, [dispatch, moderationPage, moderationStatus]);
 
-  const handleApprove = (letterId: string) => {
-    dispatch(approveLetter(letterId) as any);
+  const handleApproveClick = (letterId: string) => {
+    setApproveConfirmOpen(letterId);
   };
 
-  const handleReject = async (letterId: string, reason: string) => {
-    dispatch(rejectLetter(letterId, reason) as any);
-    setSelectedLetter(null);
+  const handleApproveConfirm = async (letterId: string) => {
+    await dispatch(approveLetter(letterId) as any);
+    setApproveConfirmOpen(null);
+    dispatch(fetchModerationQueue({ page: moderationPage, status: moderationStatus }) as any);
+    dispatch(fetchLetterStats() as any);
   };
 
-  const handleDelete = (letterId: string) => {
-    if (confirm("Are you sure you want to delete this letter?")) {
-      dispatch(deleteLetter(letterId) as any);
+  const handleRejectClick = (letterId: string) => {
+    setRejectReasonDialogOpen(letterId);
+  };
+
+  const handleRejectConfirm = async (reason: string) => {
+    if (rejectReasonDialogOpen) {
+      await dispatch(rejectLetter(rejectReasonDialogOpen, reason) as any);
+      setRejectReasonDialogOpen(null);
+      dispatch(fetchModerationQueue({ page: moderationPage, status: moderationStatus }) as any);
+      dispatch(fetchLetterStats() as any);
+    }
+  };
+
+  const handleDeleteClick = (letterId: string) => {
+    setDeleteConfirmation({ open: true, letterId });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmation.letterId) {
+      dispatch(deleteLetter(deleteConfirmation.letterId) as any);
+      setDeleteConfirmation({ open: false, letterId: null });
     }
   };
 
@@ -179,7 +224,7 @@ export default function AdminLetters() {
                     <div className="flex-1">
                       <CardTitle className="text-lg mb-2">{letter.subject}</CardTitle>
                       <p className="text-sm text-slate-600">
-                        By {letter.author?.fullName || "Anonymous"} •{" "}
+                        By {letter.author?.fullName || "Unknown"} {letter.isAnonymous ? "(Anonymous)" : ""} •{" "}
                         {new Date(letter.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -201,7 +246,12 @@ export default function AdminLetters() {
                   <div className="bg-slate-50 p-3 rounded">
                     <p className="text-xs font-medium text-slate-600 mb-2">Author Details:</p>
                     <p className="text-sm text-slate-700">
-                      {letter.author?.fullName || "Anonymous"} (ID: {letter.authorId})
+                      {letter.author?.fullName || "Unknown"} (ID: {letter.authorId})
+                      {letter.isAnonymous && (
+                        <span className="ml-2 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded">
+                          Marked Anonymous by User
+                        </span>
+                      )}
                     </p>
                   </div>
 
@@ -223,7 +273,7 @@ export default function AdminLetters() {
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"
                           disabled={approvingLetter}
-                          onClick={() => handleApprove(letter.id)}
+                          onClick={() => handleApproveClick(letter.id)}
                         >
                           {approvingLetter ? (
                             <>
@@ -240,7 +290,7 @@ export default function AdminLetters() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => setSelectedLetter(letter.id)}
+                          onClick={() => handleRejectClick(letter.id)}
                         >
                           <XCircle className="w-4 h-4 mr-1" />
                           Reject
@@ -254,7 +304,7 @@ export default function AdminLetters() {
                         size="sm"
                         className="text-red-600 hover:text-red-700 ml-auto"
                         disabled={deletingLetter}
-                        onClick={() => handleDelete(letter.id)}
+                        onClick={() => handleDeleteClick(letter.id)}
                       >
                         {deletingLetter ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -307,7 +357,7 @@ export default function AdminLetters() {
                   <div className="bg-amber-50/30 dark:bg-amber-950/10 rounded-lg p-6 border border-amber-200/30 dark:border-amber-800/20">
                     <div className="mb-4">
                       <p className="text-sm text-slate-600 mb-2">
-                        <strong>From:</strong> {moderationLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Anonymous"}
+                        <strong>From:</strong> {moderationLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Unknown"} {moderationLetters.find((l) => l.id === viewLetterOpen)?.isAnonymous ? "(Anonymous)" : ""}
                       </p>
                       <p className="text-sm text-slate-600">
                         <strong>Status:</strong>{" "}
@@ -335,17 +385,64 @@ export default function AdminLetters() {
           </Dialog>
         )}
 
+        {/* Approve Confirmation Dialog */}
+        <Dialog open={!!approveConfirmOpen} onOpenChange={() => setApproveConfirmOpen(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Approve Letter?</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-slate-700">
+                Are you sure you want to approve this letter? It will be published immediately.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setApproveConfirmOpen(null)} disabled={approvingLetter}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleApproveConfirm(approveConfirmOpen || "")}
+                disabled={approvingLetter}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {approvingLetter ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Approve
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reject Confirmation Dialog */}
         <AdminReasonDialog
-          isOpen={!!selectedLetter}
+          isOpen={!!rejectReasonDialogOpen}
           title="Reject Letter"
           label="Reason for Rejection"
           placeholder="Explain why this letter is being rejected..."
           confirmText="Reject"
-          onClose={() => setSelectedLetter(null)}
+          onClose={() => setRejectReasonDialogOpen(null)}
           onSubmit={(reason) => {
-            handleReject(selectedLetter || "", reason);
+            handleRejectConfirm(reason);
           }}
           isLoading={rejectingLetter}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmDialog
+          isOpen={deleteConfirmation.open}
+          title="Delete Letter"
+          itemName="this letter"
+          isDeleting={deletingLetter}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirmation({ open: false, letterId: null })}
         />
       </div>
     </div>

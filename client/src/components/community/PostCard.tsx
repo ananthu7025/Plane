@@ -47,9 +47,47 @@ interface PostCardProps {
 
 const { item: itemVariants } = ANIMATION_VARIANTS;
 
+// Recursive reply tree renderer component
+function NestedReplyTree({
+  replyGroup,
+  postId,
+  currentUserId,
+  onReplyDeleted,
+}: {
+  replyGroup: any;
+  postId: string;
+  currentUserId?: string;
+  onReplyDeleted?: () => void;
+}) {
+  return (
+    <div>
+      <ReplyItem
+        reply={replyGroup.parent}
+        postId={postId}
+        currentUserId={currentUserId}
+        onReplyDeleted={onReplyDeleted}
+      />
+      {replyGroup.nested.length > 0 && (
+        <div className="space-y-2 mt-2">
+          {replyGroup.nested.map((nestedGroup: any) => (
+            <NestedReplyTree
+              key={nestedGroup.parent.id}
+              replyGroup={nestedGroup}
+              postId={postId}
+              currentUserId={currentUserId}
+              onReplyDeleted={onReplyDeleted}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PostCard({ post, currentUserId, onReplyAdded }: PostCardProps) {
   const dispatch = useAppDispatch();
   const [showReplies, setShowReplies] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
@@ -64,8 +102,52 @@ export function PostCard({ post, currentUserId, onReplyAdded }: PostCardProps) {
     (state) => state.community.postReplies[post.id] || [],
   );
   const deletingPost = useAppSelector((state) => state.community.deletingPost);
+  const { user } = useAppSelector((state) => state.auth);
 
   const isOwnPost = currentUserId && post.author?.id === currentUserId;
+  const isAdmin = user?.role === "ADMIN";
+  const shouldShowActualAuthor = !post.isAnonymous || isAdmin;
+
+  // Reverse replies to show oldest first (API returns newest first)
+  // This ensures parent comments appear before their nested replies
+  const orderedReplies = [...postReplies].reverse();
+
+  // Helper function to recursively find nested replies
+  const findNestedReplies = (parentId: string, mentionedAuthor?: string): Reply[] => {
+    return orderedReplies.filter((nestedReply) => {
+      // Don't include the parent comment itself
+      if (nestedReply.id === parentId) return false;
+
+      // New format: check parentCommentId (supports infinite nesting)
+      if (nestedReply.parentCommentId === parentId) return true;
+
+      // Old format: check @username mention (only for direct children)
+      if (mentionedAuthor && nestedReply.content?.startsWith("@")) {
+        const mentionMatch = nestedReply.content.match(/^@(\S+)\s+/);
+        if (mentionMatch && mentionMatch[1] === mentionedAuthor) {
+          return true;
+        }
+      }
+      return false;
+    });
+  };
+
+  // Helper function to recursively build nested reply tree
+  const buildReplyTree = (parent: Reply): any => ({
+    parent,
+    nested: findNestedReplies(parent.id, parent.author?.name).map((child) => buildReplyTree(child)),
+  });
+
+  // Group replies: parent comments and their nested replies (with recursive support)
+  // Support both new (parentCommentId) and old (@username) formats for backward compatibility
+  const parentComments = orderedReplies.filter(
+    (reply) => !reply.parentCommentId && !reply.content?.startsWith("@")
+  );
+
+  const groupedReplies = parentComments.map(buildReplyTree).filter((group) => {
+    // Only keep groups where parent exists
+    return group.parent;
+  });
 
   useEffect(() => {
     if (showReplies && postReplies.length === 0 && post.commentCount > 0) {
@@ -118,20 +200,25 @@ export function PostCard({ post, currentUserId, onReplyAdded }: PostCardProps) {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <Avatar className="w-10 h-10 flex-shrink-0">
-            <AvatarImage src={post.isAnonymous ? "" : post.author?.avatar} />
+            <AvatarImage src={shouldShowActualAuthor ? post.author?.avatar : ""} />
             <AvatarFallback>
-              {post.isAnonymous ? "?" : post.author?.name?.[0] || "U"}
+              {shouldShowActualAuthor ? (post.author?.name?.[0] || "U") : "?"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm">
-                {post.isAnonymous
-                  ? "Anonymous"
-                  : post.author?.name || "Unknown"}
+                {shouldShowActualAuthor
+                  ? post.author?.name || "Unknown"
+                  : "Anonymous"}
               </p>
+              {post.isAnonymous && isAdmin && (
+                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                  (Admin: {post.author?.name})
+                </span>
+              )}
               <Badge variant="muted" className="text-xs">
-                {post.category}
+                {typeof post.category === "string" ? post.category : post.category?.name || "Uncategorized"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -155,15 +242,38 @@ export function PostCard({ post, currentUserId, onReplyAdded }: PostCardProps) {
       </div>
 
       {/* Content */}
-      <p className="text-sm text-foreground mb-4 line-clamp-4">
-        {post.content}
-      </p>
+      <div className="mb-3">
+        <p className={`text-sm text-foreground ${!isExpanded ? 'line-clamp-4' : ''}`}>
+          {post.content}
+        </p>
+        {post.content.split('\n').length > 4 && !isExpanded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-primary p-0 h-auto"
+            onClick={() => setIsExpanded(true)}
+          >
+            Read More
+          </Button>
+        )}
+        {isExpanded && (post.content.split('\n').length > 4) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-primary p-0 h-auto"
+            onClick={() => setIsExpanded(false)}
+          >
+            Read Less
+          </Button>
+        )}
+      </div>
 
       {/* Footer with actions */}
       <div className="flex items-center gap-4 pt-3 border-t border-border/50">
         <LikeButton
           likeCount={post.likeCount}
           postId={post.id}
+          isLiked={post.isLiked || false}
           onToggleLike={handleToggleLike}
         />
 
@@ -187,15 +297,32 @@ export function PostCard({ post, currentUserId, onReplyAdded }: PostCardProps) {
       {showReplies && (
         <div className="mt-4 pt-4 border-t border-border/50 space-y-4">
           {postReplies.length > 0 ? (
-            <div className="space-y-3">
-              {postReplies.map((reply) => (
-                <ReplyItem
-                  key={reply.id}
-                  reply={reply}
-                  postId={post.id}
-                  currentUserId={currentUserId}
-                  onReplyDeleted={onReplyAdded}
-                />
+            <div className="space-y-4">
+              {groupedReplies.map((group, idx) => (
+                <div key={`group-${idx}`}>
+                  {/* Parent comment */}
+                  <ReplyItem
+                    key={group.parent.id}
+                    reply={group.parent}
+                    postId={post.id}
+                    currentUserId={currentUserId}
+                    onReplyDeleted={onReplyAdded}
+                  />
+                  {/* Nested replies (recursive) */}
+                  {group.nested.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {group.nested.map((nestedGroup: any) => (
+                        <NestedReplyTree
+                          key={nestedGroup.parent.id}
+                          replyGroup={nestedGroup}
+                          postId={post.id}
+                          currentUserId={currentUserId}
+                          onReplyDeleted={onReplyAdded}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : post.commentCount > 0 ? (

@@ -2,7 +2,6 @@
 import { axiosInstance } from "@/api/client";
 import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
-import { toast } from "sonner";
 import { ROLES_ENDPOINTS } from "@/lib/constants";
 import { refreshUserPermissions } from "./authSlice";
 
@@ -325,7 +324,6 @@ export function getAllRoles() {
       const message =
         error.response?.data?.error?.message || "Failed to fetch roles";
       dispatch(getAllRolesError(message));
-      toast.error(message);
     }
   };
 }
@@ -345,7 +343,6 @@ export function getRoleById(roleId: number) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch role";
       dispatch(getRoleByIdError(message));
-      toast.error(message);
     }
   };
 }
@@ -375,7 +372,6 @@ export function getAllPermissions(params?: {
       const message =
         error.response?.data?.error?.message || "Failed to fetch permissions";
       dispatch(getAllPermissionsError(message));
-      toast.error(message);
     }
   };
 }
@@ -396,12 +392,10 @@ export function createPermission(data: {
         data,
       );
       dispatch(createPermissionSuccess(response.data.data));
-      toast.success("Permission created successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to create permission";
       dispatch(createPermissionError(message));
-      toast.error(message);
     }
   };
 }
@@ -425,12 +419,10 @@ export function updatePermission(
         data,
       );
       dispatch(updatePermissionSuccess(response.data.data));
-      toast.success("Permission updated successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to update permission";
       dispatch(updatePermissionError(message));
-      toast.error(message);
     }
   };
 }
@@ -446,12 +438,10 @@ export function deletePermission(permissionId: number) {
         ROLES_ENDPOINTS.DELETE_PERMISSION(permissionId),
       );
       dispatch(deletePermissionSuccess(permissionId));
-      toast.success("Permission deleted successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete permission";
       dispatch(deletePermissionError(message));
-      toast.error(message);
     }
   };
 }
@@ -467,7 +457,6 @@ export function assignPermissionToRole(roleId: number, permissionId: number) {
         permissionId,
       });
       dispatch(assignPermissionSuccess());
-      toast.success("Permission assigned to role");
       // Refresh the role to get updated permissions
       dispatch(getRoleById(roleId) as any);
       // Refresh user's token to get updated permissions immediately
@@ -476,7 +465,6 @@ export function assignPermissionToRole(roleId: number, permissionId: number) {
       const message =
         error.response?.data?.error?.message || "Failed to assign permission";
       dispatch(assignPermissionError(message));
-      toast.error(message);
     }
   };
 }
@@ -492,7 +480,6 @@ export function removePermissionFromRole(roleId: number, permissionId: number) {
         ROLES_ENDPOINTS.REMOVE_PERMISSION(roleId, permissionId),
       );
       dispatch(removePermissionSuccess());
-      toast.success("Permission removed from role");
       // Refresh the role to get updated permissions
       dispatch(getRoleById(roleId) as any);
       // Refresh user's token to get updated permissions immediately
@@ -501,7 +488,6 @@ export function removePermissionFromRole(roleId: number, permissionId: number) {
       const message =
         error.response?.data?.error?.message || "Failed to remove permission";
       dispatch(removePermissionError(message));
-      toast.error(message);
     }
   };
 }
@@ -521,14 +507,12 @@ export function updateUserRole(
         { role },
       );
       dispatch(updateUserRoleSuccess());
-      toast.success(`User role updated to ${role}`);
       // Refresh all roles to get updated user counts
       dispatch(getAllRoles() as any);
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to update user role";
       dispatch(updateUserRoleError(message));
-      toast.error(message);
     }
   };
 }
@@ -545,12 +529,10 @@ export function createRole(data: { name: string; description?: string }) {
         data,
       );
       dispatch(createRoleSuccess(response.data.data));
-      toast.success("Role created successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to create role";
       dispatch(createRoleError(message));
-      toast.error(message);
     }
   };
 }
@@ -570,12 +552,10 @@ export function updateRole(
         data,
       );
       dispatch(updateRoleSuccess(response.data.data));
-      toast.success("Role updated successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to update role";
       dispatch(updateRoleError(message));
-      toast.error(message);
     }
   };
 }
@@ -589,12 +569,10 @@ export function deleteRole(roleId: number) {
     try {
       await axiosInstance.delete(ROLES_ENDPOINTS.DELETE_ROLE(roleId));
       dispatch(deleteRoleSuccess(roleId));
-      toast.success("Role deleted successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete role";
       dispatch(deleteRoleError(message));
-      toast.error(message);
     }
   };
 }

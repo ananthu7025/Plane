@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 interface LikeButtonProps {
   likeCount: number;
   postId: string;
+  isLiked?: boolean;
   onToggleLike: () => Promise<void>;
 }
 
@@ -27,15 +28,16 @@ function FloatingHeart() {
 
 export function LikeButton({
   likeCount,
+  isLiked: initialIsLiked = false,
   onToggleLike,
 }: LikeButtonProps) {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [optimisticDelta, setOptimisticDelta] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [floatingHearts, setFloatingHearts] = useState<string[]>([]);
 
   // Calculate displayed count from actual likeCount plus any optimistic delta
-  const displayCount = likeCount + optimisticDelta;
+  const displayCount = (likeCount ?? 0) + optimisticDelta;
 
   const handleClick = async () => {
     if (isAnimating) return;
@@ -46,7 +48,7 @@ export function LikeButton({
     const newIsLiked = !isLiked;
     const delta = newIsLiked ? 1 : -1;
     setIsLiked(newIsLiked);
-    setOptimisticDelta(delta);
+    setOptimisticDelta(prevDelta => prevDelta + delta);
 
     // Show floating hearts on like
     if (newIsLiked) {

@@ -1,14 +1,23 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Search, Plus, Trash2, Edit2, Upload, Archive, Eye } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import PermissionGate from "@/components/common/PermissionGate";
 import PDFViewer from "@/components/PDFViewer";
+import { DeleteConfirmDialog } from "@/components/shared";
+import { InputText } from "@/components/ui/input-text";
+import { InputSelect } from "@/components/ui/input-select";
+import { InputTextarea } from "@/components/ui/input-textarea";
 import { Permissions } from "@/lib/permissions";
+import { NEWSLETTER_CATEGORIES_LIST, NEWSLETTER_STATUS_FILTER_OPTIONS } from "@/lib/constants";
 import {
   Dialog,
   DialogContent,
@@ -17,15 +26,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from "react-hook-form";
 import {
   fetchAdminNewsletters,
   createNewsletter,
@@ -41,38 +41,41 @@ import {
   setAdminPage,
 } from "@/store/slices/newsletterSlice";
 
-interface CreateNewsletterForm {
-  title: string;
-  description: string;
-  category: string;
-}
+const createNewsletterSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters"),
+  description: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+});
 
-interface EditNewsletterForm {
-  title?: string;
-  description?: string;
-  category?: string;
-}
+const editNewsletterSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters").optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
+});
+
+type CreateNewsletterForm = z.infer<typeof createNewsletterSchema>;
+type EditNewsletterForm = z.infer<typeof editNewsletterSchema>;
 
 export default function AdminNewsletters() {
   const dispatch = useAppDispatch();
 
   // Redux state
   const {
-    adminNewsletters,
-    adminPage,
+    adminNewsletters = [],
+    adminPage = 1,
     adminPagination,
-    adminSearch,
-    adminCategory,
-    adminStatus,
-    adminSort,
-    loadingAdminNewsletters,
-    creatingNewsletter,
-    updatingNewsletter,
-    deletingNewsletter,
-    togglingStatus,
+    adminSearch = "",
+    adminCategory = "All",
+    adminStatus = "all",
+    adminSort = "recent",
+    loadingAdminNewsletters = false,
+    creatingNewsletter = false,
+    updatingNewsletter = false,
+    deletingNewsletter = false,
+    togglingStatus = false,
     error,
     successMessage,
-  } = useAppSelector((state) => state.newsletters);
+  } = useAppSelector((state) => state.newsletters) || {};
 
   // Local state
   const [searchInput, setSearchInput] = useState("");
@@ -80,9 +83,18 @@ export default function AdminNewsletters() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<File | null>(null);
   const [viewingNewsletterId, setViewingNewsletterId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    open: boolean;
+    newsletterId: string | null;
+  }>({
+    open: false,
+    newsletterId: null,
+  });
 
   const createForm = useForm<CreateNewsletterForm>({
+    resolver: zodResolver(createNewsletterSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -90,11 +102,24 @@ export default function AdminNewsletters() {
     },
   });
 
-  const editForm = useForm<EditNewsletterForm>();
+  const editForm = useForm<EditNewsletterForm>({
+    resolver: zodResolver(editNewsletterSchema),
+  });
+
+  // Prevent duplicate API calls and toasts in Strict Mode
+  const shownMessagesRef = useRef<Set<string>>(new Set());
+  const lastFetchRef = useRef<{
+    page: number;
+    search: string;
+    category: string;
+    status: string;
+    sort: string;
+  } | null>(null);
 
   // Toast notifications
   useEffect(() => {
-    if (successMessage) {
+    if (successMessage && !shownMessagesRef.current.has(successMessage)) {
+      shownMessagesRef.current.add(successMessage);
       toast.success(successMessage);
       dispatch(clearSuccessMessage());
       setIsCreateOpen(false);
@@ -102,6 +127,7 @@ export default function AdminNewsletters() {
       createForm.reset();
       editForm.reset();
       setSelectedFile(null);
+      setSelectedThumbnail(null);
       setEditingId(null);
     }
   }, [successMessage, dispatch, createForm, editForm]);
@@ -113,17 +139,37 @@ export default function AdminNewsletters() {
     }
   }, [error, dispatch]);
 
-  // Load admin newsletters
+  // Load admin newsletters (prevent duplicate calls in Strict Mode)
   useEffect(() => {
-    dispatch(
-      fetchAdminNewsletters({
-        page: adminPage,
-        search: adminSearch,
-        category: adminCategory,
-        status: adminStatus === "all" ? undefined : adminStatus,
-        sort: adminSort,
-      }) as any
-    );
+    const currentFetch = {
+      page: adminPage,
+      search: adminSearch,
+      category: adminCategory,
+      status: adminStatus === "all" ? "" : adminStatus,
+      sort: adminSort,
+    };
+    const lastFetch = lastFetchRef.current;
+
+    // Only fetch if parameters have changed or this is the first fetch
+    if (
+      !lastFetch ||
+      lastFetch.page !== currentFetch.page ||
+      lastFetch.search !== currentFetch.search ||
+      lastFetch.category !== currentFetch.category ||
+      lastFetch.status !== currentFetch.status ||
+      lastFetch.sort !== currentFetch.sort
+    ) {
+      lastFetchRef.current = currentFetch;
+      dispatch(
+        fetchAdminNewsletters({
+          page: adminPage,
+          search: adminSearch,
+          category: adminCategory,
+          status: adminStatus === "all" ? undefined : adminStatus,
+          sort: adminSort,
+        }) as any
+      );
+    }
   }, [dispatch, adminPage, adminSearch, adminCategory, adminStatus, adminSort]);
 
   // Handle search
@@ -144,9 +190,12 @@ export default function AdminNewsletters() {
 
     const formData = new FormData();
     formData.append("title", data.title);
-    formData.append("description", data.description);
+    formData.append("description", data.description || "");
     formData.append("category", data.category);
     formData.append("file", selectedFile);
+    if (selectedThumbnail) {
+      formData.append("thumbnailFile", selectedThumbnail);
+    }
 
     dispatch(createNewsletter(formData) as any);
   };
@@ -165,9 +214,14 @@ export default function AdminNewsletters() {
   };
 
   // Handle delete
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this newsletter?")) {
-      dispatch(deleteNewsletter(id) as any);
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmation({ open: true, newsletterId: id });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmation.newsletterId) {
+      dispatch(deleteNewsletter(deleteConfirmation.newsletterId) as any);
+      setDeleteConfirmation({ open: false, newsletterId: null });
     }
   };
 
@@ -204,7 +258,7 @@ export default function AdminNewsletters() {
     }
   };
 
-  const categories = ["All", "Aviation News", "Safety Tips", "Industry Updates"];
+  const categories = NEWSLETTER_CATEGORIES_LIST;
 
   // Get viewing newsletter data
   const viewingNewsletter = viewingNewsletterId
@@ -240,64 +294,31 @@ export default function AdminNewsletters() {
                   onSubmit={createForm.handleSubmit(handleCreateSubmit)}
                   className="space-y-4"
                 >
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">
-                      Title *
-                    </label>
-                    <Input
-                      placeholder="Newsletter title..."
-                      {...createForm.register("title", {
-                        required: "Title is required",
-                        minLength: { value: 5, message: "Minimum 5 characters" },
-                      })}
-                    />
-                    {createForm.formState.errors.title && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {createForm.formState.errors.title.message}
-                      </p>
-                    )}
-                  </div>
+                  <InputText
+                    hookForm={createForm}
+                    field="title"
+                    label="Title"
+                    labelMandatory
+                    placeholder="Newsletter title..."
+                  />
 
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">
-                      Description
-                    </label>
-                    <Textarea
-                      placeholder="Newsletter description..."
-                      {...createForm.register("description")}
-                      className="resize-none"
-                    />
-                  </div>
+                  <InputTextarea
+                    hookForm={createForm}
+                    field="description"
+                    label="Description"
+                    placeholder="Newsletter description..."
+                  />
 
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">
-                      Category *
-                    </label>
-                    <Select
-                      value={createForm.watch("category")}
-                      onValueChange={(value) =>
-                        createForm.setValue("category", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories
-                          .filter((c) => c !== "All")
-                          .map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    {createForm.formState.errors.category && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {createForm.formState.errors.category.message}
-                      </p>
-                    )}
-                  </div>
+                  <InputSelect
+                    hookForm={createForm}
+                    field="category"
+                    label="Category"
+                    labelMandatory
+                    placeholder="Select category"
+                    options={categories
+                      .filter((c) => c !== "All")
+                      .map((cat) => ({ value: cat, label: cat }))}
+                  />
 
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
@@ -324,6 +345,35 @@ export default function AdminNewsletters() {
                           {selectedFile ? selectedFile.name : "Click to select PDF or drag and drop"}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">Max 50MB</p>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Thumbnail Image (Optional)
+                    </label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-slate-400 transition">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && file.type.startsWith("image/")) {
+                            setSelectedThumbnail(file);
+                          } else if (file) {
+                            toast.error("Please select a valid image file");
+                          }
+                        }}
+                        className="hidden"
+                        id="thumbnail-input"
+                      />
+                      <label htmlFor="thumbnail-input" className="cursor-pointer">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                        <p className="text-sm font-medium text-slate-700">
+                          {selectedThumbnail ? selectedThumbnail.name : "Click to select thumbnail or drag and drop"}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">PNG, JPG, WebP (Max 5MB)</p>
                       </label>
                     </div>
                   </div>
@@ -401,7 +451,7 @@ export default function AdminNewsletters() {
               {/* Status and Sort */}
               <div className="flex flex-wrap gap-2">
                 <span className="text-sm font-medium text-slate-600 py-2">Status:</span>
-                {(["all", "published", "archived", "draft"] as const).map(
+                {NEWSLETTER_STATUS_FILTER_OPTIONS.map(
                   (status) => (
                     <Button
                       key={status}
@@ -455,6 +505,13 @@ export default function AdminNewsletters() {
               >
                 <CardHeader>
                   <div className="flex justify-between items-start gap-4">
+                    {newsletter.thumbnailCloudinaryUrl && (
+                      <img
+                        src={newsletter.thumbnailCloudinaryUrl}
+                        alt={newsletter.title}
+                        className="w-20 h-24 object-cover rounded-md flex-shrink-0"
+                      />
+                    )}
                     <div className="flex-1">
                       <CardTitle className="text-lg mb-2">
                         {newsletter.title}
@@ -550,7 +607,7 @@ export default function AdminNewsletters() {
                         size="sm"
                         className="text-red-600 hover:text-red-700 ml-auto"
                         disabled={deletingNewsletter}
-                        onClick={() => handleDelete(newsletter.id)}
+                        onClick={() => handleDeleteClick(newsletter.id)}
                       >
                         {deletingNewsletter ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -605,51 +662,29 @@ export default function AdminNewsletters() {
               onSubmit={editForm.handleSubmit(handleEditSubmit)}
               className="space-y-4"
             >
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">
-                  Title
-                </label>
-                <Input
-                  placeholder="Newsletter title..."
-                  {...editForm.register("title")}
-                />
-              </div>
+              <InputText
+                hookForm={editForm}
+                field="title"
+                label="Title"
+                placeholder="Newsletter title..."
+              />
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">
-                  Description
-                </label>
-                <Textarea
-                  placeholder="Newsletter description..."
-                  {...editForm.register("description")}
-                  className="resize-none"
-                />
-              </div>
+              <InputTextarea
+                hookForm={editForm}
+                field="description"
+                label="Description"
+                placeholder="Newsletter description..."
+              />
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">
-                  Category
-                </label>
-                <Select
-                  value={editForm.watch("category") || ""}
-                  onValueChange={(value) =>
-                    editForm.setValue("category", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories
-                      .filter((c) => c !== "All")
-                      .map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <InputSelect
+                hookForm={editForm}
+                field="category"
+                label="Category"
+                placeholder="Select category"
+                options={categories
+                  .filter((c) => c !== "All")
+                  .map((cat) => ({ value: cat, label: cat }))}
+              />
 
               <Button
                 type="submit"
@@ -676,7 +711,7 @@ export default function AdminNewsletters() {
       {/* PDF Viewer Modal */}
       {viewingNewsletter && (
         <Dialog open={!!viewingNewsletterId} onOpenChange={(open) => !open && setViewingNewsletterId(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>{viewingNewsletter.title}</DialogTitle>
             </DialogHeader>
@@ -685,13 +720,21 @@ export default function AdminNewsletters() {
               <PDFViewer
                 url={`/api/newsletters/${viewingNewsletter.id}/pdf`}
                 title={viewingNewsletter.title}
-                isPaid={false}
-                showPageCount={true}
               />
             </div>
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmation.open}
+        title="Delete Newsletter"
+        itemName="this newsletter"
+        isDeleting={deletingNewsletter}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmation({ open: false, newsletterId: null })}
+      />
     </div>
   );
 }

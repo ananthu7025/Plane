@@ -38,8 +38,8 @@ import {
 export function AdminStudents() {
   const dispatch = useAppDispatch();
 
-  const { users, pagination, filters, loading, error, successMessage } =
-    useAppSelector((state) => state.userManagement);
+  const { users = [], pagination, filters, loading = false, error, successMessage } =
+    useAppSelector((state) => state.userManagement) || {};
 
   const canSuspend = usePermission(Permissions.SUSPEND_USER);
 

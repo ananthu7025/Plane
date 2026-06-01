@@ -10,8 +10,15 @@ interface EmailOptions {
   html: string;
 }
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client safely
+let resend: Resend;
+try {
+  resend = new Resend(process.env.RESEND_API_KEY || "");
+} catch (error) {
+  console.warn("⚠️ Resend client initialization failed - email service will be disabled");
+  // Create a dummy client that won't throw
+  resend = new Resend("");
+}
 
 // Email processor state
 let isProcessing = false;

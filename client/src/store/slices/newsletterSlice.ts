@@ -2,7 +2,6 @@
 import { axiosInstance } from "@/api/client";
 import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
-import { toast } from "sonner";
 import { NEWSLETTER_ENDPOINTS } from "@/lib/constants";
 
 // API Response wrapper type
@@ -25,6 +24,7 @@ export interface Newsletter {
   category: string;
   cloudinaryUrl: string;
   cloudinaryPublicId: string;
+  thumbnailCloudinaryUrl?: string | null;
   fileSize: number;
   status: "published" | "archived" | "draft";
   uploadedBy: string;
@@ -398,7 +398,6 @@ export function fetchNewsletters(params: {
       const message =
         error.response?.data?.error?.message || "Failed to load newsletters";
       dispatch(getNewslettersError(message));
-      toast.error(message);
     }
   };
 }
@@ -437,7 +436,6 @@ export function fetchAdminNewsletters(params: {
       const message =
         error.response?.data?.error?.message || "Failed to load newsletters";
       dispatch(getAdminNewslettersError(message));
-      toast.error(message);
     }
   };
 }
@@ -457,7 +455,6 @@ export function fetchNewsletterDetail(id: string) {
       const message =
         error.response?.data?.error?.message || "Failed to load newsletter";
       dispatch(getNewsletterDetailError(message));
-      toast.error(message);
     }
   };
 }
@@ -484,7 +481,6 @@ export function createNewsletter(payload: FormData) {
       const message =
         error.response?.data?.error?.message || "Failed to create newsletter";
       dispatch(createNewsletterError(message));
-      toast.error(message);
     }
   };
 }
@@ -509,7 +505,6 @@ export function updateNewsletter(id: string, payload: {
       const message =
         error.response?.data?.error?.message || "Failed to update newsletter";
       dispatch(updateNewsletterError(message));
-      toast.error(message);
     }
   };
 }
@@ -529,7 +524,6 @@ export function deleteNewsletter(id: string) {
       const message =
         error.response?.data?.error?.message || "Failed to delete newsletter";
       dispatch(deleteNewsletterError(message));
-      toast.error(message);
     }
   };
 }
@@ -550,7 +544,6 @@ export function toggleNewsletterStatus(id: string, status: "published" | "archiv
       const message =
         error.response?.data?.error?.message || "Failed to update status";
       dispatch(toggleStatusError(message));
-      toast.error(message);
     }
   };
 }

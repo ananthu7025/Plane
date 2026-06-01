@@ -2,7 +2,6 @@
 import { axiosInstance } from "@/api/client";
 import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
-import { toast } from "sonner";
 import { USER_MANAGEMENT_ENDPOINTS } from "@/lib/constants";
 
 // API Response wrapper type
@@ -311,7 +310,6 @@ export function getAllUsers(params: PaginationParams) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch users";
       dispatch(getAllUsersError(message));
-      toast.error(message);
     }
   };
 }
@@ -346,7 +344,6 @@ export function getUserById(userId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch user";
       dispatch(getUserByIdError(message));
-      toast.error(message);
     }
   };
 }
@@ -360,12 +357,10 @@ export function updateUserProfile(userId: string, data: UpdateProfilePayload) {
         data,
       );
       dispatch(updateUserProfileSuccess(response.data.data));
-      toast.success("User profile updated successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to update user profile";
       dispatch(updateUserProfileError(message));
-      toast.error(message);
     }
   };
 }
@@ -382,12 +377,10 @@ export function updateUserStatus(
         { status },
       );
       dispatch(updateUserStatusSuccess(response.data.data));
-      toast.success(`User status updated to ${status}`);
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to update user status";
       dispatch(updateUserStatusError(message));
-      toast.error(message);
     }
   };
 }
@@ -424,7 +417,6 @@ export function getOwnProfile() {
       const message =
         error.response?.data?.error?.message || "Failed to fetch profile";
       dispatch(getOwnProfileError(message));
-      toast.error(message);
     }
   };
 }
@@ -438,12 +430,10 @@ export function updateOwnProfile(data: UpdateProfilePayload) {
         data,
       );
       dispatch(updateOwnProfileSuccess(response.data.data));
-      toast.success("Profile updated successfully");
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to update profile";
       dispatch(updateOwnProfileError(message));
-      toast.error(message);
     }
   };
 }
@@ -462,11 +452,7 @@ export function getPublicProfile(userId: string) {
         }),
       );
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message ||
-        "Failed to fetch public profile";
       dispatch(getPublicProfileError());
-      toast.error(message);
     }
   };
 }
@@ -478,14 +464,12 @@ export function deleteUser(userId: string) {
       await axiosInstance.delete<ApiResponse<any>>(
         USER_MANAGEMENT_ENDPOINTS.DELETE_USER(userId),
       );
-      toast.success("User deleted successfully");
       // Refresh the users list
       dispatch(getAllUsers({ page: 1, limit: 20 }) as any);
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to delete user";
       dispatch(getAllUsersError(message));
-      toast.error(message);
     }
   };
 }

@@ -1,12 +1,39 @@
 import { db } from "../../db/index.js";
-import { users, userProfiles, authTokens, roles } from "../../db/schema.js";
 import { eq, and, isNull, desc } from "drizzle-orm";
-import { hashPassword, comparePassword, generateAccessToken, generateAccessTokenWithRole, generateRefreshToken, generateVerificationToken, hashVerificationToken, verifyOTP, verifyToken } from "../../utils/auth.js";
-import { ConflictError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
-import { sendOTPEmail, sendPasswordResetEmail, sendPasswordConfirmationEmail } from "../../utils/emailService.js";
 import { getUserPermissions } from "../../utils/permissions.js";
+import { users, userProfiles, authTokens, roles } from "../../db/schema.js";
+import { ConflictError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
+import { hashPassword, comparePassword, generateAccessToken, generateAccessTokenWithRole, generateRefreshToken, generateVerificationToken, hashVerificationToken, verifyOTP, verifyToken } from "../../utils/auth.js";
+import { sendOTPEmail, sendPasswordResetEmail, sendPasswordConfirmationEmail } from "../../utils/emailService.js";
+import config from "../../config/index.js";
 
-export async function signup(email: string, password: string, fullName: string) {
+/**
+ * Parse time string (e.g., "1m", "7d") to milliseconds
+ */
+function parseTimeToMs(timeStr: string): number {
+  const value = parseInt(timeStr);
+  const unit = timeStr.replace(/\d/g, "").toLowerCase();
+
+  const multipliers: Record<string, number> = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  return value * (multipliers[unit] || 1000);
+}
+
+// Token expiry times in milliseconds (centralized from config)
+const TOKEN_EXPIRY = {
+  OTP: config.OTP_EXPIRY_MINUTES * 60 * 1000,
+  ACCESS: parseTimeToMs(config.JWT_ACCESS_EXPIRY),
+  REFRESH: parseTimeToMs(config.JWT_REFRESH_EXPIRY),
+  PASSWORD_RESET: 60 * 60 * 1000, // 1 hour
+};
+
+export async function signup(email: string, password: string, fullName: string): Promise<any> {
   // Check if email already exists
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase()),
@@ -51,20 +78,18 @@ export async function signup(email: string, password: string, fullName: string) 
   const otp = generateVerificationToken();
   const otpHash = await hashVerificationToken(otp);
 
-  // Calculate expiry (15 minutes from now)
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  // Calculate expiry (from config: OTP_EXPIRY_MINUTES)
+  const expiresAt = new Date(Date.now() + TOKEN_EXPIRY.OTP);
 
   // Store token hash
   await db.insert(authTokens).values({
     userId: newUser.id,
-    tokenType: "ACCESS", // Using ACCESS for verification token storage (can use a separate token type in production)
+    tokenType: "ACCESS", 
     tokenHash: otpHash,
     expiresAt,
   });
-
-  // Send OTP email asynchronously (non-blocking)
   sendOTPEmail(newUser.email, fullName, otp).catch((error) => {
-    console.error(`⚠️ Failed to queue OTP email for ${newUser.email}:`, error);
+    console.error(`Failed to queue OTP email for ${newUser.email}:`, error);
     // Don't throw error - signup succeeds even if email fails
     // In production, you might want to mark this for retry
   });
@@ -78,7 +103,7 @@ export async function signup(email: string, password: string, fullName: string) 
   };
 }
 
-export async function signin(email: string, password: string) {
+export async function signin(email: string, password: string): Promise<any> {
   // Find user by email
   const user = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase()),
@@ -128,10 +153,9 @@ export async function signin(email: string, password: string) {
   const accessTokenHash = await hashVerificationToken(accessToken);
   const refreshTokenHash = await hashVerificationToken(refreshToken);
 
-  // Store tokens
-  // NOTE: Access token set to 1 minute for testing refresh mechanism. Change back to 15 * 60 * 1000 for production.
-  const accessTokenExpiry = new Date(Date.now() + 1 * 60 * 1000); // 1 minute for testing
-  const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  // Store tokens (expiry times from centralized config)
+  const accessTokenExpiry = new Date(Date.now() + TOKEN_EXPIRY.ACCESS);
+  const refreshTokenExpiry = new Date(Date.now() + TOKEN_EXPIRY.REFRESH);
 
   await db.insert(authTokens).values([
     {
@@ -171,7 +195,7 @@ export async function signin(email: string, password: string) {
   };
 }
 
-export async function verifyEmail(email: string, otp: string) {
+export async function verifyEmail(email: string, otp: string): Promise<any> {
   // Find user
   const user = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase()),
@@ -237,7 +261,7 @@ export async function verifyEmail(email: string, otp: string) {
   };
 }
 
-export async function refreshAccessToken(refreshToken: string) {
+export async function refreshAccessToken(refreshToken: string): Promise<any> {
   try {
     // Verify JWT signature and extract payload
     const decoded = verifyToken(refreshToken) as { userId: string; type: string } | null;
@@ -305,10 +329,9 @@ export async function refreshAccessToken(refreshToken: string) {
     const accessTokenHash = await hashVerificationToken(newAccessToken);
     const refreshTokenHash = await hashVerificationToken(newRefreshToken);
 
-    // Calculate expiry times
-    // NOTE: Access token set to 1 minute for testing refresh mechanism. Change back to 15 * 60 * 1000 for production.
-    const accessTokenExpiry = new Date(Date.now() + 1 * 60 * 1000); // 1 minute for testing
-    const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    // Calculate expiry times (from centralized config)
+    const accessTokenExpiry = new Date(Date.now() + TOKEN_EXPIRY.ACCESS);
+    const refreshTokenExpiry = new Date(Date.now() + TOKEN_EXPIRY.REFRESH);
 
     // Revoke old refresh token (token rotation for security)
     await db
@@ -353,7 +376,7 @@ export async function refreshAccessToken(refreshToken: string) {
   }
 }
 
-export async function signout(userId: string, refreshToken: string) {
+export async function signout(userId: string, refreshToken: string): Promise<any> {
   try {
     // Verify refresh token format
     const decoded = verifyToken(refreshToken) as { userId: string; type: string } | null;
@@ -406,7 +429,7 @@ export async function signout(userId: string, refreshToken: string) {
   }
 }
 
-export async function resendOTP(email: string) {
+export async function resendOTP(email: string): Promise<any> {
   // Find user
   const user = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase()),
@@ -442,7 +465,7 @@ export async function resendOTP(email: string) {
   // Generate new OTP
   const otp = generateVerificationToken();
   const otpHash = await hashVerificationToken(otp);
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + TOKEN_EXPIRY.OTP);
 
   // Store new OTP
   await db.insert(authTokens).values({
@@ -463,7 +486,7 @@ export async function resendOTP(email: string) {
   };
 }
 
-export async function initiatePasswordReset(email: string) {
+export async function initiatePasswordReset(email: string): Promise<any> {
   // Find user (case-insensitive, but don't reveal if user exists)
   const user = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase()),
@@ -482,7 +505,7 @@ export async function initiatePasswordReset(email: string) {
   // Generate reset token (UUID)
   const resetToken = generateVerificationToken(); // Using same token generator for simplicity
   const resetTokenHash = await hashVerificationToken(resetToken);
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expiresAt = new Date(Date.now() + TOKEN_EXPIRY.PASSWORD_RESET);
 
   // Store reset token
   await db.insert(authTokens).values({
@@ -504,7 +527,7 @@ export async function initiatePasswordReset(email: string) {
   };
 }
 
-export async function resetPassword(email: string, resetToken: string, newPassword: string) {
+export async function resetPassword(email: string, token: string, newPassword: string): Promise<any> {
   // Find user
   const user = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase()),
@@ -542,7 +565,7 @@ export async function resetPassword(email: string, resetToken: string, newPasswo
   }
 
   // Verify token hash
-  const isTokenValid = await verifyOTP(resetToken, storedToken.tokenHash);
+  const isTokenValid = await verifyOTP(token, storedToken.tokenHash);
   if (!isTokenValid) {
     throw new UnauthorizedError("Invalid reset link. Please request a new one.", "RESET_TOKEN_INVALID");
   }

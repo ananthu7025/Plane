@@ -10,15 +10,20 @@ import { createPost } from "@/store/slices/communitySlice";
 import type { Category } from "@/store/slices/communitySlice";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
+type CreatePostFormData = {
+  title: string;
+  content: string;
+  categoryId: string;
+  isAnonymous?: boolean;
+};
+
 // Validation schema
 const createPostSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters").max(200, "Title is too long"),
   content: z.string().min(10, "Content must be at least 10 characters").max(5000, "Content is too long"),
   categoryId: z.string().min(1, "Please select a category"),
-  isAnonymous: z.boolean(),
+  isAnonymous: z.boolean().optional(),
 });
-
-type CreatePostFormData = z.infer<typeof createPostSchema>;
 
 interface CreatePostDialogProps {
   isOpen: boolean;
@@ -57,7 +62,7 @@ export function CreatePostDialog({ isOpen, onClose, categories }: CreatePostDial
           title: data.title,
           content: data.content,
           categoryId,
-          isAnonymous: data.isAnonymous,
+          isAnonymous: data.isAnonymous ?? false,
         }) as any
       );
 
@@ -95,9 +100,14 @@ export function CreatePostDialog({ isOpen, onClose, categories }: CreatePostDial
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           {/* Title */}
           <div className="space-y-2">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-900">
-              Title
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-900">
+                Title
+              </label>
+              <span className={`text-xs ${(form.watch("title")?.length || 0) > 200 ? "text-red-600" : "text-muted-foreground"}`}>
+                {form.watch("title")?.length || 0}/200
+              </span>
+            </div>
             <input
               id="title"
               type="text"
@@ -113,9 +123,14 @@ export function CreatePostDialog({ isOpen, onClose, categories }: CreatePostDial
 
           {/* Content */}
           <div className="space-y-2">
-            <label htmlFor="content" className="block text-sm font-medium text-gray-900">
-              Content
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="content" className="block text-sm font-medium text-gray-900">
+                Content
+              </label>
+              <span className={`text-xs ${(form.watch("content")?.length || 0) > 5000 ? "text-red-600" : "text-muted-foreground"}`}>
+                {form.watch("content")?.length || 0}/5000
+              </span>
+            </div>
             <textarea
               id="content"
               {...form.register("content")}

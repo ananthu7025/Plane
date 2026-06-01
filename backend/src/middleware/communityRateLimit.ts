@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
+import config from "../config/index.js";
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -12,6 +13,12 @@ interface UserRateLimit {
   count: number;
   resetTime: number;
 }
+
+// Community rate limit time windows (centralized)
+const RATE_LIMIT_WINDOWS = {
+  HOUR: 60 * 60 * 1000, // 1 hour (for posts, replies, likes)
+  CLEANUP_INTERVAL: 5 * 60 * 1000, // 5 minutes (for cleanup routine)
+};
 
 // Store for tracking rate limits (in production, use Redis)
 const rateLimitStore = new Map<string, Map<string, UserRateLimit>>();
@@ -109,30 +116,31 @@ export function communityRateLimit(config: RateLimitConfig) {
 
 /**
  * Rate limit config presets for different endpoints
+ * Time windows centralized from RATE_LIMIT_WINDOWS
  */
 export const rateLimitPresets = {
   // 10 posts per hour
   createPost: {
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: RATE_LIMIT_WINDOWS.HOUR,
     maxRequests: 10,
     message: "You can only create 10 posts per hour",
   },
   // 30 replies per hour
   createReply: {
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: RATE_LIMIT_WINDOWS.HOUR,
     maxRequests: 30,
     message: "You can only create 30 replies per hour",
   },
   // 100 likes per hour
   likeContent: {
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: RATE_LIMIT_WINDOWS.HOUR,
     maxRequests: 100,
     message: "You can only like 100 items per hour",
   },
 };
 
 /**
- * Cleanup old entries periodically (every 5 minutes)
+ * Cleanup old entries periodically (from RATE_LIMIT_WINDOWS.CLEANUP_INTERVAL)
  */
 export function startRateLimitCleanup() {
   setInterval(() => {
@@ -151,7 +159,7 @@ export function startRateLimitCleanup() {
         rateLimitStore.delete(endpointType);
       }
     }
-  }, 5 * 60 * 1000);
+  }, RATE_LIMIT_WINDOWS.CLEANUP_INTERVAL);
 }
 
 /**

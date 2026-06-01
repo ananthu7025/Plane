@@ -2,7 +2,6 @@
 import { axiosInstance } from "@/api/client";
 import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
-import { toast } from "sonner";
 import { LETTERS_ENDPOINTS } from "@/lib/constants";
 
 // API Response wrapper type
@@ -71,6 +70,8 @@ interface LetterSliceState {
   myLetters: Letter[];
   myLettersPage: number;
   myLettersTotal: number;
+  myLettersHasMore: boolean;
+  myLettersTotalPages: number;
   myLettersStatus: "all" | "PENDING" | "APPROVED" | "REJECTED";
 
   // Moderation queue (admin only)
@@ -120,6 +121,8 @@ const initialState: LetterSliceState = {
   myLetters: [],
   myLettersPage: 1,
   myLettersTotal: 0,
+  myLettersHasMore: false,
+  myLettersTotalPages: 0,
   myLettersStatus: "all",
 
   // Moderation queue
@@ -249,6 +252,8 @@ const letterSlice = createSlice({
       state.loadingMyLetters = false;
       state.myLetters = action.payload.letters;
       state.myLettersTotal = action.payload.pagination.total;
+      state.myLettersHasMore = action.payload.pagination.hasMore;
+      state.myLettersTotalPages = action.payload.pagination.totalPages;
     },
     getMyLettersError: (state, action: PayloadAction<string>) => {
       state.loadingMyLetters = false;
@@ -379,6 +384,14 @@ const letterSlice = createSlice({
       state.successMessage = "Letter deleted successfully";
       // Remove from moderation list
       state.moderationLetters = state.moderationLetters.filter(
+        l => l.id !== action.payload.id
+      );
+      // Remove from my letters list
+      state.myLetters = state.myLetters.filter(
+        l => l.id !== action.payload.id
+      );
+      // Remove from public letters list
+      state.publicLetters = state.publicLetters.filter(
         l => l.id !== action.payload.id
       );
     },
@@ -513,10 +526,10 @@ export function fetchPublicLetters(params: {
         LETTERS_ENDPOINTS.GET_PUBLIC_LETTERS,
         { params }
       );
-      const { letters, pagination } = response.data.data;
+      const { items, pagination } = response.data.data;
       dispatch(
         getPublicLettersSuccess({
-          letters,
+          letters: items,
           pagination: {
             page: pagination.page,
             limit: pagination.limit,
@@ -530,7 +543,6 @@ export function fetchPublicLetters(params: {
       const message =
         error.response?.data?.error?.message || "Failed to load letters";
       dispatch(getPublicLettersError(message));
-      toast.error(message);
     }
   };
 }
@@ -551,10 +563,10 @@ export function fetchMyLetters(params: {
         LETTERS_ENDPOINTS.GET_MY_LETTERS,
         { params }
       );
-      const { letters, pagination } = response.data.data;
+      const { items, pagination } = response.data.data;
       dispatch(
         getMyLettersSuccess({
-          letters,
+          letters: items,
           pagination: {
             page: pagination.page,
             limit: pagination.limit,
@@ -568,7 +580,6 @@ export function fetchMyLetters(params: {
       const message =
         error.response?.data?.error?.message || "Failed to load your letters";
       dispatch(getMyLettersError(message));
-      toast.error(message);
     }
   };
 }
@@ -588,10 +599,10 @@ export function fetchModerationQueue(params: {
         LETTERS_ENDPOINTS.GET_MODERATION_QUEUE,
         { params }
       );
-      const { letters, pagination } = response.data.data;
+      const { items, pagination } = response.data.data;
       dispatch(
         getModerationQueueSuccess({
-          letters,
+          letters: items,
           pagination: {
             page: pagination.page,
             limit: pagination.limit,
@@ -605,7 +616,6 @@ export function fetchModerationQueue(params: {
       const message =
         error.response?.data?.error?.message || "Failed to load moderation queue";
       dispatch(getModerationQueueError(message));
-      toast.error(message);
     }
   };
 }
@@ -625,7 +635,6 @@ export function fetchLetterDetail(letterId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to load letter";
       dispatch(getLetterDetailError(message));
-      toast.error(message);
     }
   };
 }
@@ -645,7 +654,6 @@ export function fetchLetterStats() {
       const message =
         error.response?.data?.error?.message || "Failed to load statistics";
       dispatch(getLetterStatsError(message));
-      toast.error(message);
     }
   };
 }
@@ -673,7 +681,6 @@ export function createNewLetter(payload: {
       const message =
         error.response?.data?.error?.message || "Failed to create letter";
       dispatch(createLetterError(message));
-      toast.error(message);
     }
   };
 }
@@ -703,7 +710,6 @@ export function resubmitLetter(
       const message =
         error.response?.data?.error?.message || "Failed to resubmit letter";
       dispatch(resubmitLetterError(message));
-      toast.error(message);
     }
   };
 }
@@ -723,7 +729,6 @@ export function approveLetter(letterId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to approve letter";
       dispatch(approveLetterError(message));
-      toast.error(message);
     }
   };
 }
@@ -737,14 +742,13 @@ export function rejectLetter(letterId: string, rejectionReason: string) {
     try {
       await axiosInstance.put<ApiResponse<Letter>>(
         LETTERS_ENDPOINTS.REJECT_LETTER(letterId),
-        { rejectionReason }
+        { reason: rejectionReason }
       );
       dispatch(rejectLetterSuccess({ id: letterId }));
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to reject letter";
       dispatch(rejectLetterError(message));
-      toast.error(message);
     }
   };
 }
@@ -764,7 +768,6 @@ export function deleteLetter(letterId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to delete letter";
       dispatch(deleteLetterError(message));
-      toast.error(message);
     }
   };
 }
@@ -791,7 +794,6 @@ export function toggleLetterLike(letterId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to toggle like";
       dispatch(toggleLikeError(message));
-      toast.error(message);
     }
   };
 }

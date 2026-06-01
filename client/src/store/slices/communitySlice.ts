@@ -1,8 +1,9 @@
+/* eslint-disable no-useless-catch */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { axiosInstance } from "@/api/client";
 import { createSlice } from "@reduxjs/toolkit";
 import type { Dispatch, PayloadAction } from "@reduxjs/toolkit";
-import { toast } from "sonner";
 import { COMMUNITY_ENDPOINTS } from "@/lib/constants";
 
 // API Response wrapper type
@@ -22,7 +23,11 @@ export interface Post {
     role: string;
     avatar?: string;
   };
-  category: string;
+  category?: {
+    id: number;
+    name: string;
+    description?: string;
+  } | string;
   categoryId: number;
   title: string;
   content: string;
@@ -30,8 +35,12 @@ export interface Post {
   status: "PENDING" | "APPROVED" | "REJECTED";
   likeCount: number;
   commentCount: number;
+  viewCount: number;
+  isLiked?: boolean;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
+  featuredMediaId?: string | null;
 }
 
 export interface Reply {
@@ -40,6 +49,7 @@ export interface Reply {
   content: string;
   status: string;
   likeCount: number;
+  parentCommentId?: string | null;
   createdAt: string;
   author?: {
     id: string;
@@ -335,15 +345,22 @@ const communitySlice = createSlice({
     // Toggle post like
     togglePostLikeSuccess: (
       state,
-      action: PayloadAction<{ postId: string; likeCount: number }>,
+      action: PayloadAction<{ postId: string; likeCount: number; isLiked: boolean }>,
     ) => {
       const post = state.posts.find((p) => p.id === action.payload.postId);
       if (post) {
         post.likeCount = action.payload.likeCount;
+        post.isLiked = action.payload.isLiked;
       }
       const userPost = state.userPosts.find((p) => p.id === action.payload.postId);
       if (userPost) {
         userPost.likeCount = action.payload.likeCount;
+        userPost.isLiked = action.payload.isLiked;
+      }
+      const modPost = state.moderationPosts.find((p) => p.id === action.payload.postId);
+      if (modPost) {
+        modPost.likeCount = action.payload.likeCount;
+        modPost.isLiked = action.payload.isLiked;
       }
     },
 
@@ -739,7 +756,7 @@ export function getAllApprovedPosts(params: {
 
       dispatch(
         getAllApprovedPostsSuccess({
-          data: responseData.data || [],
+          data: responseData.items || [],
           pagination: responseData.pagination,
           isAppending,
         }),
@@ -748,7 +765,6 @@ export function getAllApprovedPosts(params: {
       const message =
         error.response?.data?.error?.message || "Failed to fetch posts";
       dispatch(getAllApprovedPostsError(message));
-      toast.error(message);
     }
   };
 }
@@ -768,7 +784,6 @@ export function getPostById(postId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch post";
       dispatch(getPostByIdError(message));
-      toast.error(message);
     }
   };
 }
@@ -787,7 +802,7 @@ export function getUserPosts(params: { page?: number; limit?: number; status?: s
       const responseData = response.data.data;
       dispatch(
         getUserPostsSuccess({
-          data: responseData.data || [],
+          data: responseData.items || [],
           pagination: responseData.pagination,
         }),
       );
@@ -795,7 +810,6 @@ export function getUserPosts(params: { page?: number; limit?: number; status?: s
       const message =
         error.response?.data?.error?.message || "Failed to fetch your posts";
       dispatch(getUserPostsError(message));
-      toast.error(message);
     }
   };
 }
@@ -846,13 +860,12 @@ export function deletePost(postId: string) {
       const message =
         error.response?.data?.error?.message || "Failed to delete post";
       dispatch(deletePostError(message));
-      toast.error(message);
     }
   };
 }
 
 /**
- * Toggle like on post
+ * Toggle like on post (Instagram/Facebook style)
  */
 export function togglePostLike(postId: string) {
   return async function (dispatch: Dispatch) {
@@ -863,13 +876,12 @@ export function togglePostLike(postId: string) {
       dispatch(
         togglePostLikeSuccess({
           postId,
+          isLiked: response.data.data.isLiked,
           likeCount: response.data.data.likeCount,
         }),
       );
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to toggle like";
-      toast.error(message);
+      // Silently fail for toggle like
     }
   };
 }
@@ -877,25 +889,42 @@ export function togglePostLike(postId: string) {
 /**
  * Add reply to post
  */
-export function addReply(postId: string, content: string) {
+export function addReply(postId: string, content: string, parentCommentId?: string) {
   return async function (dispatch: Dispatch) {
     dispatch(addReplyStart());
     try {
-      const response = await axiosInstance.post<ApiResponse<Reply>>(
+      const response = await axiosInstance.post<ApiResponse<any>>(
         COMMUNITY_ENDPOINTS.ADD_REPLY(postId),
-        { content },
+        { content, parentCommentId },
       );
+      const commentData = response.data.data;
+
+      // Transform comment to Reply interface
+      const reply: Reply = {
+        id: commentData.id,
+        authorId: commentData.authorId,
+        content: commentData.content,
+        status: commentData.status || "APPROVED",
+        likeCount: commentData.likeCount || 0,
+        parentCommentId: commentData.parentCommentId || null,
+        createdAt: commentData.createdAt,
+        author: {
+          id: commentData.authorId,
+          name: commentData.authorName || "Unknown",
+          avatar: commentData.avatar,
+        },
+      };
+
       dispatch(
         addReplySuccess({
           postId,
-          reply: response.data.data,
+          reply,
         }),
       );
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to add reply";
       dispatch(addReplyError(message));
-      toast.error(message);
     }
   };
 }
@@ -911,9 +940,7 @@ export function deleteReply(postId: string, replyId: string) {
       );
       dispatch(deleteReplySuccess({ postId, replyId }));
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to delete reply";
-      toast.error(message);
+      // Silently fail for delete reply
     }
   };
 }
@@ -924,7 +951,7 @@ export function deleteReply(postId: string, replyId: string) {
 export function toggleReplyLike(postId: string, replyId: string) {
   return async function (dispatch: Dispatch) {
     try {
-      const response = await axiosInstance.put<ApiResponse<any>>(
+      const response = await axiosInstance.post<ApiResponse<any>>(
         COMMUNITY_ENDPOINTS.LIKE_REPLY(postId, replyId),
       );
       dispatch(
@@ -935,9 +962,7 @@ export function toggleReplyLike(postId: string, replyId: string) {
         }),
       );
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to toggle like";
-      toast.error(message);
+      // Silently fail for toggle like
     }
   };
 }
@@ -962,7 +987,7 @@ export function getPostsForModeration(params: {
       const responseData = response.data.data;
       dispatch(
         getPostsForModerationSuccess({
-          data: responseData.data || [],
+          data: responseData.items || [],
           pagination: responseData.pagination,
         }),
       );
@@ -971,7 +996,6 @@ export function getPostsForModeration(params: {
         error.response?.data?.error?.message ||
         "Failed to fetch posts for moderation";
       dispatch(getPostsForModerationError(message));
-      toast.error(message);
     }
   };
 }
@@ -990,9 +1014,6 @@ export function approvePost(postId: string) {
       dispatch(approvePostSuccess(postData));
       return postData;
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to approve post";
-      toast.error(message);
       throw error;
     }
   };
@@ -1011,9 +1032,6 @@ export function declinePost(postId: string, reason: string) {
       dispatch(declinePostSuccess(response.data.data));
       return response.data.data;
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to decline post";
-      toast.error(message);
       throw error;
     }
   };
@@ -1029,9 +1047,6 @@ export function deletePostAdmin(postId: string) {
       dispatch(deletePostAdminSuccess(postId));
       return postId;
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to delete post";
-      toast.error(message);
       throw error;
     }
   };
@@ -1043,28 +1058,34 @@ export function deletePostAdmin(postId: string) {
 export function getPostDetails(postId: string) {
   return async function (dispatch: Dispatch) {
     try {
-      const response = await axiosInstance.get(
-        COMMUNITY_ENDPOINTS.GET_POST_BY_ID(postId)
-      );
+      // Fetch both post and comments in parallel
+      const [postResponse, commentsResponse] = await Promise.all([
+        axiosInstance.get(COMMUNITY_ENDPOINTS.GET_POST_BY_ID(postId)),
+        axiosInstance.get<ApiResponse<any>>(
+          COMMUNITY_ENDPOINTS.GET_POST_COMMENTS(postId),
+          { params: { page: 1, limit: 50 } }
+        ),
+      ]);
 
-      const postData = response.data.data.post || response.data.data;
-      const comments = postData.comments || [];
+      const postData = postResponse.data.data;
+      const commentsData = commentsResponse.data.data;
 
-      console.log("[DEBUG] Post details response:", { postData, comments });
+      console.log("[DEBUG] Post details response:", { postData, commentsData });
 
-      // Map comments to Reply format
-      const mappedComments = comments.map((comment: any) => ({
+      // Map comments to Reply format, including parentCommentId for nested replies
+      const mappedComments = (commentsData.items || []).map((comment: any) => ({
         id: comment.id,
-        authorId: comment.author?.id || "",
+        authorId: comment.authorId,
         content: comment.content,
-        status: "APPROVED",
+        status: comment.status || "APPROVED",
         likeCount: comment.likeCount || 0,
+        parentCommentId: comment.parentCommentId || null,
         createdAt: comment.createdAt,
-        author: comment.author ? {
-          id: comment.author.id,
-          name: comment.author.name || "Unknown",
-          avatar: comment.author.avatar,
-        } : undefined,
+        author: {
+          id: comment.authorId,
+          name: comment.authorName || "Unknown",
+          avatar: comment.avatar,
+        },
       }));
 
       dispatch(
@@ -1093,9 +1114,7 @@ export function deleteReplyAdmin(postId: string, replyId: string) {
       );
       dispatch(deleteReplyAdminSuccess({ postId, replyId }));
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to delete reply";
-      toast.error(message);
+      // Silently fail for delete reply admin
     }
   };
 }
@@ -1114,7 +1133,7 @@ export function getBannedUsers(params: { page?: number; limit?: number }) {
       const responseData = response.data.data;
       dispatch(
         getBannedUsersSuccess({
-          data: responseData.data || [],
+          data: responseData.items || [],
           pagination: responseData.pagination,
         }),
       );
@@ -1122,7 +1141,6 @@ export function getBannedUsers(params: { page?: number; limit?: number }) {
       const message =
         error.response?.data?.error?.message || "Failed to fetch banned users";
       dispatch(getBannedUsersError(message));
-      toast.error(message);
     }
   };
 }
@@ -1135,8 +1153,8 @@ export function banUser(userId: string, reason: string) {
     dispatch(banUserStart());
     try {
       const response = await axiosInstance.post<ApiResponse<BannedUser>>(
-        COMMUNITY_ENDPOINTS.BAN_USER(userId),
-        { reason },
+        COMMUNITY_ENDPOINTS.BAN_USER,
+        { userId, reason },
       );
       dispatch(banUserSuccess(response.data.data));
       return response.data.data;
@@ -1144,7 +1162,6 @@ export function banUser(userId: string, reason: string) {
       const message =
         error.response?.data?.error?.message || "Failed to ban user";
       dispatch(banUserError(message));
-      toast.error(message);
       throw error;
     }
   };
@@ -1157,14 +1174,13 @@ export function unbanUser(userId: string) {
   return async function (dispatch: Dispatch) {
     dispatch(unbanUserStart());
     try {
-      await axiosInstance.put(COMMUNITY_ENDPOINTS.UNBAN_USER(userId));
+      await axiosInstance.post(COMMUNITY_ENDPOINTS.UNBAN_USER, { userId });
       dispatch(unbanUserSuccess(userId));
       return userId;
     } catch (error: any) {
       const message =
         error.response?.data?.error?.message || "Failed to unban user";
       dispatch(unbanUserError(message));
-      toast.error(message);
       throw error;
     }
   };
@@ -1190,7 +1206,6 @@ export function getAllCategories() {
       const message =
         error.response?.data?.error?.message || "Failed to fetch categories";
       dispatch(getAllCategoriesError(message));
-      toast.error(message);
     }
   };
 }
@@ -1235,7 +1250,6 @@ export function createCategory(data: {
       const message =
         error.response?.data?.error?.message || error.message || "Failed to create category";
       dispatch(createCategoryError(message));
-      toast.error(message);
       throw error;
     }
   };
@@ -1252,9 +1266,7 @@ export function deleteCategory(categoryId: number) {
       );
       dispatch(deleteCategorySuccess(categoryId));
     } catch (error: any) {
-      const message =
-        error.response?.data?.error?.message || "Failed to delete category";
-      toast.error(message);
+      // Silently fail for delete category
     }
   };
 }
@@ -1274,7 +1286,7 @@ export function getPostLikes(postId: string, params?: { page?: number; limit?: n
       dispatch(
         getPostLikesSuccess({
           postId,
-          data: responseData.data || [],
+          data: responseData.items || [],
           pagination: responseData.pagination,
         }),
       );
@@ -1282,7 +1294,6 @@ export function getPostLikes(postId: string, params?: { page?: number; limit?: n
       const message =
         error.response?.data?.error?.message || "Failed to fetch post likes";
       dispatch(getPostLikesError({ postId, error: message }));
-      toast.error(message);
     }
   };
 }
@@ -1302,7 +1313,7 @@ export function getPostComments(postId: string, params?: { page?: number; limit?
       dispatch(
         getPostCommentsSuccess({
           postId,
-          data: responseData.data || [],
+          data: responseData.items || [],
           pagination: responseData.pagination,
         }),
       );
@@ -1310,7 +1321,6 @@ export function getPostComments(postId: string, params?: { page?: number; limit?
       const message =
         error.response?.data?.error?.message || "Failed to fetch post comments";
       dispatch(getPostCommentsError({ postId, error: message }));
-      toast.error(message);
     }
   };
 }

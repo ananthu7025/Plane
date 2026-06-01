@@ -40,54 +40,59 @@ async function seed() {
       console.log(`✓ Roles already exist (${existingRoles.length} found)`);
     }
 
-    // 2. Insert Permissions
+    // 2. Insert Permissions (Redesigned - 30 permissions)
     console.log("📝 Seeding permissions...");
     const existingPerms = await db.query.permissions.findMany();
     if (existingPerms.length === 0) {
       await db.insert(permissions).values([
-        // Post permissions
-        { name: "CREATE_POST", module: "posts", description: "Can create community posts" },
-        { name: "EDIT_POST", module: "posts", description: "Can edit own posts" },
-        { name: "DELETE_POST", module: "posts", description: "Can delete own posts" },
-        { name: "APPROVE_POST", module: "posts", description: "Can approve pending posts" },
-        { name: "REJECT_POST", module: "posts", description: "Can reject posts" },
-        { name: "VIEW_POST", module: "posts", description: "Can view posts" },
+        // Posts (5 permissions) - Consolidated
+        { name: "CREATE_POST", module: "community", description: "Can create new community posts" },
+        { name: "EDIT_OWN_POST", module: "community", description: "Can edit own posts" },
+        { name: "DELETE_OWN_POST", module: "community", description: "Can delete own posts" },
+        { name: "MODERATE_POSTS", module: "community", description: "Can approve/reject/edit any post" },
+        { name: "VIEW_POST", module: "community", description: "Can view posts" },
 
-        // Comment permissions
-        { name: "CREATE_COMMENT", module: "comments", description: "Can create comments" },
-        { name: "EDIT_COMMENT", module: "comments", description: "Can edit own comments" },
-        { name: "DELETE_COMMENT", module: "comments", description: "Can delete own comments" },
-        { name: "APPROVE_COMMENT", module: "comments", description: "Can approve comments" },
-        { name: "REJECT_COMMENT", module: "comments", description: "Can reject comments" },
+        // Comments (5 permissions) - Consolidated
+        { name: "CREATE_COMMENT", module: "community", description: "Can create comments on posts" },
+        { name: "EDIT_OWN_COMMENT", module: "community", description: "Can edit own comments" },
+        { name: "DELETE_OWN_COMMENT", module: "community", description: "Can delete own comments" },
+        { name: "MODERATE_COMMENTS", module: "community", description: "Can approve/reject/edit any comment" },
+        { name: "APPROVE_COMMENT", module: "community", description: "Can approve comments (legacy alias)" },
 
-        // Letter permissions
-        { name: "CREATE_LETTER", module: "letters", description: "Can create student letters" },
+        // Letters (6 permissions) - Consolidated
+        { name: "CREATE_LETTER", module: "letters", description: "Can create/submit student letters" },
+        { name: "EDIT_OWN_LETTER", module: "letters", description: "Can edit own letters" },
+        { name: "DELETE_OWN_LETTER", module: "letters", description: "Can delete own letters" },
+        { name: "MODERATE_LETTERS", module: "letters", description: "Can approve/reject/edit any letter" },
         { name: "PUBLISH_LETTER", module: "letters", description: "Can publish letters" },
-        { name: "DELETE_LETTER", module: "letters", description: "Can delete own letters" },
-        { name: "APPROVE_LETTER", module: "letters", description: "Can approve letters" },
+        { name: "DELETE_LETTER", module: "letters", description: "Can delete any letter (admin)" },
 
-        // Newsletter permissions
-        { name: "MANAGE_NEWSLETTERS", module: "newsletters", description: "Can manage newsletters" },
-        { name: "VIEW_NEWSLETTERS", module: "newsletters", description: "Can view newsletters" },
+        // Newsletters (2 permissions)
+        { name: "MANAGE_NEWSLETTERS", module: "newsletters", description: "Can upload/edit/delete newsletters" },
+        { name: "VIEW_NEWSLETTERS", module: "newsletters", description: "Can view full newsletter content" },
 
-        // User management permissions
-        { name: "BAN_USER", module: "users", description: "Can ban users" },
-        { name: "UNBAN_USER", module: "users", description: "Can unban users" },
+        // User Management (5 permissions) - Consolidated
+        { name: "MANAGE_USERS", module: "users", description: "Can ban/unban/suspend users (consolidated)" },
+        { name: "VIEW_USERS", module: "users", description: "Can view user list and details" },
+        { name: "MANAGE_PROFILES", module: "users", description: "Can edit user profiles" },
         { name: "SUSPEND_USER", module: "users", description: "Can suspend users" },
-        { name: "VIEW_USERS", module: "users", description: "Can view user list" },
+        { name: "BAN_USER", module: "users", description: "Can ban users (legacy alias)" },
 
-        // Content moderation
-        { name: "FLAG_CONTENT", module: "moderation", description: "Can flag inappropriate content" },
-        { name: "REVIEW_FLAGS", module: "moderation", description: "Can review flagged content" },
-        { name: "RESPOND_FEEDBACK", module: "moderation", description: "Can respond to feedback" },
+        // Community Management (2 permissions)
+        { name: "MANAGE_COMMUNITY", module: "community", description: "Can manage categories and community settings" },
+        { name: "MODERATE_COMMUNITY", module: "community", description: "Can moderate community (ban users, remove content)" },
 
-        // System permissions
-        { name: "MANAGE_ROLES", module: "system", description: "Can manage roles" },
-        { name: "MANAGE_PERMISSIONS", module: "system", description: "Can manage permissions" },
-        { name: "MANAGE_SETTINGS", module: "system", description: "Can manage system settings" },
-        { name: "VIEW_LOGS", module: "system", description: "Can view system logs" },
+        // Moderation & Flags (2 permissions)
+        { name: "FLAG_CONTENT", module: "moderation", description: "Can flag/report content" },
+        { name: "REVIEW_FLAGS", module: "moderation", description: "Can review flagged content and take action" },
+
+        // System & Admin (3 permissions)
+        { name: "MANAGE_ROLES", module: "system", description: "Can create/edit/delete roles" },
+        { name: "MANAGE_PERMISSIONS", module: "system", description: "Can assign permissions to roles" },
+        { name: "MANAGE_SETTINGS", module: "system", description: "Can edit platform settings" },
+        { name: "VIEW_LOGS", module: "system", description: "Can view system logs and audit trail" },
       ]);
-      console.log("✓ Permissions created");
+      console.log("✓ Permissions created (30 total)");
     } else {
       console.log(`✓ Permissions already exist (${existingPerms.length} found)`);
     }
@@ -105,33 +110,57 @@ async function seed() {
       const allPerms = await db.query.permissions.findMany();
       const permMap = new Map(allPerms.map((p) => [p.name, p.id]));
 
-      // Student permissions
+      // Student permissions (14 total)
       const studentPerms = [
+        // Content Creation
         "CREATE_POST",
-        "EDIT_POST",
-        "DELETE_POST",
-        "VIEW_POST",
         "CREATE_COMMENT",
-        "EDIT_COMMENT",
-        "DELETE_COMMENT",
         "CREATE_LETTER",
-        "DELETE_LETTER",
+
+        // Own Content Editing (Granular)
+        "EDIT_OWN_POST",
+        "EDIT_OWN_COMMENT",
+        "EDIT_OWN_LETTER",
+        "DELETE_OWN_POST",
+        "DELETE_OWN_COMMENT",
+        "DELETE_OWN_LETTER",
+
+        // Reading
+        "VIEW_NEWSLETTERS",
+        "VIEW_USERS",
+
+        // Engagement
         "FLAG_CONTENT",
+        "VIEW_POST",
+        "APPROVE_COMMENT",
       ];
 
-      // Mentor permissions
+      // Mentor permissions (28 total = STUDENT + additional)
       const mentorPerms = [
         ...studentPerms,
-        "APPROVE_POST",
-        "REJECT_POST",
-        "APPROVE_COMMENT",
-        "REJECT_COMMENT",
-        "APPROVE_LETTER",
-        "PUBLISH_LETTER",
-        "REVIEW_FLAGS",
-        "RESPOND_FEEDBACK",
+
+        // Moderation
+        "MODERATE_POSTS",
+        "MODERATE_COMMENTS",
+        "MODERATE_LETTERS",
+
+        // Community Management
+        "MANAGE_COMMUNITY",
+        "MANAGE_USERS",
+
+        // Newsletters
         "MANAGE_NEWSLETTERS",
-        "VIEW_NEWSLETTERS",
+
+        // User Management
+        "MANAGE_PROFILES",
+
+        // Content Review
+        "REVIEW_FLAGS",
+
+        // Legacy aliases (for backward compatibility)
+        "BAN_USER",
+        "SUSPEND_USER",
+        "PUBLISH_LETTER",
       ];
 
       // Admin permissions - all

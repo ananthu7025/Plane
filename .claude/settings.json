@@ -64,7 +64,39 @@
       "Bash(npm install @react-pdf-viewer/default-layout)",
       "Bash(npm install pdfjs-dist@^3.11.174 --save)",
       "Bash(git add client/package.json client/package-lock.json client/src/components/PDFViewer.tsx)",
-      "Bash(npm uninstall @react-pdf-viewer/core @react-pdf-viewer/default-layout)"
+      "Bash(npm uninstall @react-pdf-viewer/core @react-pdf-viewer/default-layout)",
+      "Bash(curl -o public/pdf.worker.min.js https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js)",
+      "Bash(npm uninstall pdfjs-dist)",
+      "Bash(curl -s -o /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/public/pdf.worker.min.js -L \"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.296/pdf.worker.min.js\")",
+      "Bash(curl -s -o /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/public/pdf.worker.min.js -L \"https://unpkg.com/pdfjs-dist@5.4.296/build/pdf.worker.min.js\")",
+      "Bash(xargs grep -l \"toast\\\\.\")",
+      "Bash(grep -l \"approveLetter\\\\|rejectLetter\\\\|deleteLetter\" client/src/pages/**/*.tsx client/src/components/**/*.tsx)",
+      "Bash(test -f \"c:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\backend\\\\.env.example\")",
+      "Bash(xargs sed -i 's/logger\\\\.info\\(\"\"\\\\\\([^\"\"]*\\\\\\)\"\", {/logger.info\\(\"\"\\\\1\"\", \"\"APP\"\", {/g')",
+      "Bash(find src/api/controllers -name \"*.ts\" -type f -exec sed -i 's/req\\\\.userId!!/req.userId!/g' {} ;)",
+      "Bash(ls -la .env*)",
+      "Bash(psql -U postgres -h localhost -c \"SELECT version\\(\\);\")",
+      "Bash(pg_isready -h localhost -p 5432 -U postgres)",
+      "Bash(PGPASSWORD=root psql -U postgres -h localhost -lqt)",
+      "Bash(PGPASSWORD=root psql -U postgres -h localhost -d planeandprop -c \"\\\\dt\")",
+      "Bash(timeout 10 node dist/index.js)",
+      "Bash(timeout 5 node dist/index.js)",
+      "Bash(timeout 3 node dist/index.js)",
+      "Bash(find /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/backend/src -type f -name \"*.ts\" -exec wc -l {} +)",
+      "Bash(wc -l /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/backend/src/api/services/*.ts)",
+      "Read(//c/Users/Anathapadmanabhan/**)",
+      "Bash(pkill -f \"node dist/index.js\")",
+      "Bash(git rm src/api/services/letterService.ts src/api/services/communityPostService.ts src/api/services/newsletterService.ts src/api/services/communityConstants.ts)",
+      "Bash(git rm -f src/api/services/letterService.ts src/api/services/communityPostService.ts src/api/services/newsletterService.ts src/api/services/communityConstants.ts)",
+      "Bash(curl -X POST http://localhost:5000/api/auth/reset-password -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"test@example.com\"\",\"\"otp\"\":\"\"123456\"\",\"\"newPassword\"\":\"\"TestPassword123\"\"}')",
+      "Bash(xargs grep -l \"import.*validation\\\\|from.*validation\")",
+      "Bash(curl -s http://localhost:5000/api/letters/feed -H \"Authorization: Bearer test\")",
+      "Bash(find /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/backend/src/api/routes -type f -name \"*.ts\" -exec grep -h \"router\\\\.\" {} ;)",
+      "Bash(grep -n \"\\\\.length ===\" c:/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/*.tsx)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Anathapadmanabhan\\.claude\\projects\\c--Users-Anathapadmanabhan-Desktop-PlaneAndProp\\memory",
+      "C:\\Users\\Anathapadmanabhan\\Desktop\\PlaneAndProp\\backend"
     ]
   }
 }

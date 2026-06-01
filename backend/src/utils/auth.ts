@@ -1,9 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import config from "../config/index.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || "15m";
-const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "7d";
+const JWT_SECRET = config.JWT_SECRET;
+const ACCESS_TOKEN_EXPIRY = config.JWT_ACCESS_EXPIRY;
+const REFRESH_TOKEN_EXPIRY = config.JWT_REFRESH_EXPIRY;
 
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;

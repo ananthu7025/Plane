@@ -579,6 +579,9 @@ export const newsletters = pgTable(
     cloudinaryPublicId: varchar("cloudinary_public_id", { length: 255 }).notNull(),
     cloudinaryUrl: varchar("cloudinary_url", { length: 500 }).notNull(),
 
+    // Thumbnail (optional)
+    thumbnailCloudinaryUrl: varchar("thumbnail_cloudinary_url", { length: 500 }),
+
     // File metadata
     fileSize: bigint("file_size", { mode: "number" }).notNull(),
 

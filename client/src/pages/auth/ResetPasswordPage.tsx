@@ -153,7 +153,7 @@ export default function ResetPasswordPage() {
               hookForm={form}
               field="newPassword"
               label="New Password"
-              placeholder="Min 8 chars, 1 uppercase, 1 number, 1 special"
+              placeholder="Min 8 chars, 1 uppercase, 1 number"
               showPassword={showPassword}
               onToggleShow={() => setShowPassword(!showPassword)}
               disabled={isLoading}

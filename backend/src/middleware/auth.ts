@@ -2,18 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/auth.js";
 import { UnauthorizedError } from "../utils/errors.js";
 
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-      token?: string;
-      roleId?: number;
-      roleName?: string;
-      userPermissions?: string[];
-    }
-  }
-}
-
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;

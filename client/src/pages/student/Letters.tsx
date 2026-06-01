@@ -14,11 +14,8 @@ import { Permissions } from "@/lib/permissions";
 import {
   fetchPublicLetters,
   fetchMyLetters,
-  fetchLetterStats,
-  clearError,
   clearSuccessMessage,
   setPublicSearch,
-  setPublicSort,
   setMyLettersStatus,
   setMyLettersPage,
   toggleLetterLike,
@@ -35,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
+import { DeleteConfirmDialog } from "@/components/shared";
 
 interface CreateLetterForm {
   subject: string;
@@ -51,20 +49,23 @@ export default function Letters() {
 
   // Redux state
   const {
-    publicLetters,
+    publicLetters = [],
     publicHasMore,
     publicSearch,
     publicSort,
     loadingPublicLetters,
-    myLetters,
+    myLetters = [],
     myLettersPage,
+    myLettersHasMore,
+    myLettersTotalPages,
     myLettersStatus,
     loadingMyLetters,
-    stats,
     creatingLetter,
     error,
     successMessage,
-  } = useAppSelector((state) => state.letters);
+  } = useAppSelector((state) => state.letters) || {};
+
+  const { user } = useAppSelector((state) => state.auth);
 
   // Local state
   const [searchInput, setSearchInput] = useState("");
@@ -73,6 +74,13 @@ export default function Letters() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("public");
   const [viewLetterOpen, setViewLetterOpen] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    open: boolean;
+    letterId: string | null;
+  }>({
+    open: false,
+    letterId: null,
+  });
   const isLoadingRef = useRef(false);
 
   const form = useForm<CreateLetterForm>({
@@ -83,9 +91,14 @@ export default function Letters() {
     },
   });
 
+  // Prevent duplicate toasts in Strict Mode
+  const shownSuccessRef = useRef<string | null>(null);
+  const shownErrorRef = useRef<string | null>(null);
+
   // Toast notifications
   useEffect(() => {
-    if (successMessage) {
+    if (successMessage && successMessage !== shownSuccessRef.current) {
+      shownSuccessRef.current = successMessage;
       toast.success(successMessage);
       dispatch(clearSuccessMessage());
       setIsCreateOpen(false);
@@ -94,11 +107,11 @@ export default function Letters() {
   }, [successMessage, dispatch, form]);
 
   useEffect(() => {
-    if (error) {
+    if (error && error !== shownErrorRef.current) {
+      shownErrorRef.current = error;
       toast.error(error);
-      dispatch(clearError());
     }
-  }, [error, dispatch]);
+  }, [error]);
 
   // Load public letters initially
   useEffect(() => {
@@ -109,7 +122,6 @@ export default function Letters() {
         sortBy: publicSort,
       }) as any
     );
-    dispatch(fetchLetterStats() as any);
     setCurrentPage(1);
   }, [dispatch, publicSearch, publicSort]);
 
@@ -163,11 +175,6 @@ export default function Letters() {
     setCurrentPage(1);
   };
 
-  // Handle sort change
-  const handleSortChange = (sortBy: "recent" | "popular" | "trending") => {
-    dispatch(setPublicSort(sortBy));
-    setCurrentPage(1);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -187,140 +194,106 @@ export default function Letters() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-4xl font-bold text-slate-900 mb-2">Letters</h1>
             <p className="text-slate-600">Share your thoughts, stories, and gratitude with the community</p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <PermissionGate permission={Permissions.CREATE_LETTER}>
+          <PermissionGate permission={Permissions.CREATE_LETTER}>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
                   Write a Letter
                 </Button>
-              </PermissionGate>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Create New Letter</DialogTitle>
-                <DialogDescription>
-                  Share your thoughts and experiences with the community
-                </DialogDescription>
-              </DialogHeader>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Create New Letter</DialogTitle>
+                  <DialogDescription>
+                    Share your thoughts and experiences with the community
+                  </DialogDescription>
+                </DialogHeader>
 
-              <form
-                onSubmit={form.handleSubmit((data) => {
-                  dispatch(
-                    createNewLetter({
-                      subject: data.subject,
-                      content: data.content,
-                      isAnonymous: data.isAnonymous,
-                    }) as any
-                  );
-                })}
-                className="space-y-4"
-              >
-                {/* Letter-style writing area with typewriter font */}
-                <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-800/30 rounded-lg p-6 space-y-4">
-                  <div className="text-right text-sm text-slate-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                <form
+                  onSubmit={form.handleSubmit((data) => {
+                    dispatch(
+                      createNewLetter({
+                        subject: data.subject,
+                        content: data.content,
+                        isAnonymous: data.isAnonymous,
+                      }) as any
+                    );
+                  })}
+                  className="space-y-4"
+                >
+                  {/* Letter-style writing area with typewriter font */}
+                  <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-800/30 rounded-lg p-6 space-y-4">
+                    <div className="text-right text-sm text-slate-500" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                      {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                    </div>
+
+                    <Input
+                      placeholder="Subject of your letter..."
+                      {...form.register("subject", {
+                        required: "Subject is required",
+                        minLength: { value: 5, message: "Subject must be at least 5 characters" },
+                      })}
+                      className="bg-transparent border-none border-b border-amber-200/50 dark:border-amber-800/30 rounded-none px-0 text-lg focus-visible:ring-0 placeholder:text-slate-400/50"
+                      style={{ fontFamily: "'Courier New', Courier, monospace" }}
+                    />
+                    {form.formState.errors.subject && (
+                      <p className="text-red-600 text-sm">{form.formState.errors.subject.message}</p>
+                    )}
+
+                    <Textarea
+                      placeholder="Dear Plane & Prop Community,&#10;&#10;Write your letter here... Share your experiences, gratitude, advice, or stories with fellow aviation enthusiasts.&#10;&#10;Warm regards,&#10;Your name"
+                      {...form.register("content", {
+                        required: "Content is required",
+                        minLength: { value: 20, message: "Content must be at least 20 characters" },
+                        maxLength: { value: 10000, message: "Content cannot exceed 10000 characters" },
+                      })}
+                      className="bg-transparent border-none min-h-[250px] px-0 focus-visible:ring-0 leading-relaxed placeholder:text-slate-400/40 resize-none"
+                      style={{ fontFamily: "'Courier New', Courier, monospace", lineHeight: "2" }}
+                    />
+                    {form.formState.errors.content && (
+                      <p className="text-red-600 text-sm">{form.formState.errors.content.message}</p>
+                    )}
                   </div>
 
-                  <Input
-                    placeholder="Subject of your letter..."
-                    {...form.register("subject", {
-                      required: "Subject is required",
-                      minLength: { value: 5, message: "Subject must be at least 5 characters" },
-                    })}
-                    className="bg-transparent border-none border-b border-amber-200/50 dark:border-amber-800/30 rounded-none px-0 text-lg focus-visible:ring-0 placeholder:text-slate-400/50"
-                    style={{ fontFamily: "'Courier New', Courier, monospace" }}
-                  />
-                  {form.formState.errors.subject && (
-                    <p className="text-red-600 text-sm">{form.formState.errors.subject.message}</p>
-                  )}
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                    <input
+                      type="checkbox"
+                      {...form.register("isAnonymous")}
+                      id="isAnonymous"
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="isAnonymous" className="text-sm text-slate-700">
+                      Post anonymously
+                    </label>
+                  </div>
 
-                  <Textarea
-                    placeholder="Dear Plane & Prop Community,&#10;&#10;Write your letter here... Share your experiences, gratitude, advice, or stories with fellow aviation enthusiasts.&#10;&#10;Warm regards,&#10;Your name"
-                    {...form.register("content", {
-                      required: "Content is required",
-                      minLength: { value: 20, message: "Content must be at least 20 characters" },
-                      maxLength: { value: 10000, message: "Content cannot exceed 10000 characters" },
-                    })}
-                    className="bg-transparent border-none min-h-[250px] px-0 focus-visible:ring-0 leading-relaxed placeholder:text-slate-400/40 resize-none"
-                    style={{ fontFamily: "'Courier New', Courier, monospace", lineHeight: "2" }}
-                  />
-                  {form.formState.errors.content && (
-                    <p className="text-red-600 text-sm">{form.formState.errors.content.message}</p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <input
-                    type="checkbox"
-                    {...form.register("isAnonymous")}
-                    id="isAnonymous"
-                    className="w-4 h-4"
-                  />
-                  <label htmlFor="isAnonymous" className="text-sm text-slate-700">
-                    Post anonymously
-                  </label>
-                </div>
-
-                <Button type="submit" disabled={creatingLetter} className="w-full">
-                  {creatingLetter ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Submit Letter
-                    </>
-                  )}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <Button type="submit" disabled={creatingLetter} className="w-full">
+                    {creatingLetter ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Submit Letter
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </PermissionGate>
         </div>
 
-        {/* Statistics */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card className="bg-blue-50 border-blue-100">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Published Letters</p>
-                    <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-green-50 border-green-100">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Total Acknowledgements</p>
-                    <div className="text-3xl font-bold text-slate-900">{stats.approved || 0}</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-          </div>
-        )}
 
         {/* Tabs */}
         <Tabs defaultValue="public" value={activeTab} onValueChange={setActiveTab}>
@@ -343,7 +316,7 @@ export default function Letters() {
                         placeholder="Search letters..."
                         value={searchInput}
                         onChange={handleSearch}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                           if (e.key === "Enter") handleSearchSubmit();
                         }}
                         className="pl-10"
@@ -352,22 +325,6 @@ export default function Letters() {
                     <Button onClick={handleSearchSubmit} variant="default">
                       Search
                     </Button>
-                  </div>
-
-                  {/* Sort Options */}
-                  <div className="flex gap-2">
-                    <span className="text-sm font-medium text-slate-600 py-2">Sort by:</span>
-                    {(["recent", "popular", "trending"] as const).map((sort) => (
-                      <Button
-                        key={sort}
-                        variant={publicSort === sort ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handleSortChange(sort)}
-                        className="capitalize"
-                      >
-                        {sort}
-                      </Button>
-                    ))}
                   </div>
                 </div>
               </CardContent>
@@ -396,7 +353,7 @@ export default function Letters() {
                         <div>
                           <CardTitle className="text-xl mb-1">{letter.subject}</CardTitle>
                           <p className="text-sm text-slate-600">
-                            {letter.author?.fullName || "Anonymous"} •{" "}
+                            {letter.isAnonymous && user?.role !== "ADMIN" ? "Anonymous" : letter.author?.fullName || "Unknown"} {letter.isAnonymous && user?.role === "ADMIN" ? "(Anonymous)" : ""} •{" "}
                             {new Date(letter.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -509,11 +466,9 @@ export default function Letters() {
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => {
-                            if (confirm("Are you sure you want to delete this letter?")) {
-                              dispatch(deleteLetter(letter.id) as any);
-                            }
-                          }}
+                          onClick={() =>
+                            setDeleteConfirmation({ open: true, letterId: letter.id })
+                          }
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -541,8 +496,14 @@ export default function Letters() {
                 >
                   Previous
                 </Button>
-                <span className="py-2 px-4 text-sm text-slate-600">Page {myLettersPage}</span>
-                <Button variant="outline" onClick={() => dispatch(setMyLettersPage(myLettersPage + 1))}>
+                <span className="py-2 px-4 text-sm text-slate-600">
+                  Page {myLettersPage} of {myLettersTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={!myLettersHasMore}
+                  onClick={() => dispatch(setMyLettersPage(myLettersPage + 1))}
+                >
                   Next
                 </Button>
               </div>
@@ -564,7 +525,7 @@ export default function Letters() {
                   <div className="bg-amber-50/30 dark:bg-amber-950/10 rounded-lg p-6 border border-amber-200/30 dark:border-amber-800/20">
                     <div className="mb-4">
                       <p className="text-sm text-slate-600 mb-2">
-                        <strong>From:</strong> {publicLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Anonymous"}
+                        <strong>From:</strong> {publicLetters.find((l) => l.id === viewLetterOpen)?.isAnonymous && user?.role !== "ADMIN" ? "Anonymous" : publicLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Unknown"} {publicLetters.find((l) => l.id === viewLetterOpen)?.isAnonymous && user?.role === "ADMIN" ? "(Anonymous)" : ""}
                       </p>
                     </div>
                     <div
@@ -579,7 +540,21 @@ export default function Letters() {
             </DialogContent>
           </Dialog>
         )}
-      </div>
+
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmDialog
+          isOpen={deleteConfirmation.open}
+          title="Delete Letter"
+          itemName="this letter"
+          isDeleting={false}
+          onConfirm={() => {
+            if (deleteConfirmation.letterId) {
+              dispatch(deleteLetter(deleteConfirmation.letterId) as any);
+              setDeleteConfirmation({ open: false, letterId: null });
+            }
+          }}
+          onCancel={() => setDeleteConfirmation({ open: false, letterId: null })}
+        />
     </div>
   );
 }

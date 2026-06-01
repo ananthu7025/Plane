@@ -148,7 +148,7 @@ export function PostDetailsModal({
                   </p>
                 </div>
                 <Badge className="w-fit bg-primary/20 text-primary border-primary/30">
-                  {post.category}
+                  {typeof post.category === "string" ? post.category : post.category?.name || "Uncategorized"}
                 </Badge>
               </div>
 

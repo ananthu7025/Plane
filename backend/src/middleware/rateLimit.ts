@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { createRateLimitStore, type RateLimitStore } from "./rateLimitStore.js";
+import config from "../config/index.js";
 
 const rateLimitStore = createRateLimitStore();
 
-const WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS = 100; // Default: 100 requests per minute
+// Rate limit configuration (centralized from config)
+const WINDOW_MS = config.RATE_LIMIT_WINDOW_MS; // 1 minute (60000ms)
+const MAX_REQUESTS = config.RATE_LIMIT_MAX_REQUESTS; // 100 requests per minute
 
 /**
  * Rate limiting middleware (production-ready)
@@ -73,8 +75,8 @@ export function authRateLimit(
   } = {}
 ) {
   return rateLimit({
-    windowMs: options.windowMs || 15 * 60 * 1000, // 15 minutes
-    maxRequests: options.maxRequests || 5, // 5 attempts per 15 minutes
+    windowMs: options.windowMs || config.RATE_LIMIT_AUTH_WINDOW, // From config (default: 900000ms = 15 minutes)
+    maxRequests: options.maxRequests || config.RATE_LIMIT_AUTH_ATTEMPTS, // From config (default: 5)
     keyGenerator: (req: Request) => {
       // Rate limit by IP + email (if provided) for better security
       const email = (req.body?.email || "unknown").toLowerCase();

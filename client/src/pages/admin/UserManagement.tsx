@@ -51,10 +51,10 @@ export function UserManagement() {
   const canSuspendUsers = usePermission(Permissions.SUSPEND_USER);
 
   // Redux state
-  const { users, loading, successMessage, error } = useAppSelector(
+  const { users = [], loading = false, successMessage, error } = useAppSelector(
     (state) => state.userManagement,
-  );
-  const { roles, updating } = useAppSelector((state) => state.roles);
+  ) || {};
+  const { roles = [], updating = false } = useAppSelector((state) => state.roles) || {};
 
   // Local state
   const [searchQuery, setSearchQuery] = useState("");

@@ -51,15 +51,14 @@ export function ReplyItem({
 
   const isOwnReply = currentUserId && reply.author?.id === currentUserId;
 
-  // Parse nested reply format: "@username content"
-  const isNestedReply = reply.content && reply.content.startsWith("@");
-  let mentionedUser = "";
-  let displayContent = reply.content || "";
+  // Check if this is a nested reply: either has parentCommentId OR starts with "@" (backward compatibility)
+  const isNestedReply = !!reply.parentCommentId || (reply.content && reply.content.startsWith("@"));
 
-  if (isNestedReply && reply.content) {
+  // Parse nested reply format for backward compatibility with old "@username content" format
+  let displayContent = reply.content || "";
+  if (isNestedReply && reply.content && reply.content.startsWith("@") && !reply.parentCommentId) {
     const mentionMatch = reply.content.match(/^@(\S+)\s+(.*)/);
     if (mentionMatch) {
-      mentionedUser = mentionMatch[1];
       displayContent = mentionMatch[2];
     }
   }
@@ -86,9 +85,8 @@ export function ReplyItem({
 
     setIsSubmittingNestedReply(true);
     try {
-      // Add nested reply with parent reply reference in content format: "@parentAuthor content"
-      const nestedContent = `@${reply.author?.name || "User"} ${data.content}`;
-      await dispatch(addReply(postId, nestedContent) as any);
+      // Add nested reply with parentCommentId to link it to the parent comment
+      await dispatch(addReply(postId, data.content, reply.id) as any);
       // Refresh post details to get updated replies
       await dispatch(getPostDetails(postId) as any);
       form.reset({ content: "" });
@@ -119,9 +117,9 @@ export function ReplyItem({
             <p className="text-xs font-medium">
               {reply.author?.name || "Unknown"}
             </p>
-            {isNestedReply && mentionedUser && (
+            {isNestedReply && (
               <span className="text-xs text-primary/70 font-medium">
-                ↳ Replying to @{mentionedUser}
+                ↳ Replying to parent comment
               </span>
             )}
           </div>

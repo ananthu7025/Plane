@@ -45,13 +45,13 @@ export default function CommunityFeed() {
 
   // Redux state
   const {
-    posts,
-    categories,
-    postsPagination,
-    postsLoading,
+    posts = [],
+    categories = [],
+    postsPagination = { page: 1, limit: 10, total: 0, totalPages: 0, hasMore: false },
+    postsLoading = false,
     postsError,
     successMessage,
-  } = useAppSelector((state) => state.community);
+  } = useAppSelector((state) => state.community) || {};
 
   // Local UI state
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
