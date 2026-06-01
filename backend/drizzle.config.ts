@@ -6,7 +6,7 @@ export default {
   out: "./src/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: "postgresql://postgres:root@localhost:5432/planeandprop",
+    url: "postgresql://root:root@localhost:5432/plane_and_prop",
   },
   verbose: true,
   strict: true,
