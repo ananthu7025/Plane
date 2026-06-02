@@ -1,6 +1,6 @@
-import { AppError } from '../../utils/errors.js';
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '../../utils/response.js';
+import { sendSuccess } from '../../utils/response.js';
+import { logger } from '../../utils/logger.js';
 import { getUserProfile, updateUserProfile, getPublicProfile } from '../services/userService.js';
 
 /**
@@ -9,16 +9,12 @@ import { getUserProfile, updateUserProfile, getPublicProfile } from '../services
  */
 export async function getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = (req as any).userId;
+    const userId = req.userId!;
     const profile = await getUserProfile(userId);
+    logger.info("User profile retrieved", "APP", { userId });
     sendSuccess(res, 200, profile);
   } catch (error) {
-    if (error instanceof AppError) {
-      sendError(res, error.statusCode, error.code, error.message, error.details);
-    } else {
-      console.error('Get profile error:', error);
-      sendError(res, 500, 'INTERNAL_ERROR', 'Internal server error');
-    }
+    next(error);
   }
 }
 
@@ -28,16 +24,12 @@ export async function getProfile(req: Request, res: Response, next: NextFunction
  */
 export async function updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = (req as any).userId;
+    const userId = req.userId!;
     const updatedProfile = await updateUserProfile(userId, req.body);
+    logger.info("User profile updated", "APP", { userId });
     sendSuccess(res, 200, updatedProfile);
   } catch (error) {
-    if (error instanceof AppError) {
-      sendError(res, error.statusCode, error.code, error.message, error.details);
-    } else {
-      console.error('Update profile error:', error);
-      sendError(res, 500, 'INTERNAL_ERROR', 'Internal server error');
-    }
+    next(error);
   }
 }
 
@@ -47,21 +39,11 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
  */
 export async function getPublicUserProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-
-    if (!userId || userId.length !== 36) {
-      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid user ID format');
-      return;
-    }
-
+    const userId = typeof req.params.userId === 'string' ? req.params.userId : req.params.userId[0];
     const publicProfile = await getPublicProfile(userId);
+    logger.info("Public profile retrieved", "APP", { userId });
     sendSuccess(res, 200, publicProfile);
   } catch (error) {
-    if (error instanceof AppError) {
-      sendError(res, error.statusCode, error.code, error.message, error.details);
-    } else {
-      console.error('Get public profile error:', error);
-      sendError(res, 500, 'INTERNAL_ERROR', 'Internal server error');
-    }
+    next(error);
   }
 }
