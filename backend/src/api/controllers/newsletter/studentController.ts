@@ -185,7 +185,8 @@ export async function getNewsletterPdf(
       res.type("application/pdf");
       res.setHeader("Content-Disposition", `inline; filename="${sanitizedTitle}.pdf"`);
       res.setHeader("Content-Length", String(formattedPdf.length));
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      // Never cache PDFs - always fetch fresh to prevent stale content
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       res.setHeader("Accept-Ranges", "bytes");
 
       // Send PDF buffer
