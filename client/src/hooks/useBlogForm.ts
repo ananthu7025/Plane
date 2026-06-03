@@ -37,16 +37,14 @@ export function useBlogForm({ onSuccess }: UseBlogFormOptions = {}) {
       status: "draft" | "published";
       coverImageUrl?: string;
     }) => {
-      return dispatch(
-        createBlog({
-          title: data.title,
-          excerpt: data.excerpt,
-          content: data.content,
-          category: data.category,
-          status: data.status,
-          coverImageUrl: data.coverImageUrl || undefined,
-        }) as any
-      );
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("excerpt", data.excerpt);
+      formData.append("content", data.content);
+      formData.append("category", data.category);
+      formData.append("status", data.status);
+      if (data.coverImageUrl) formData.append("coverImageUrl", data.coverImageUrl);
+      return dispatch(createBlog(formData) as any);
     },
     [dispatch]
   );
@@ -63,16 +61,14 @@ export function useBlogForm({ onSuccess }: UseBlogFormOptions = {}) {
         coverImageUrl?: string;
       }
     ) => {
-      return dispatch(
-        updateBlog(blogId, {
-          title: data.title,
-          excerpt: data.excerpt,
-          content: data.content,
-          category: data.category,
-          status: data.status,
-          coverImageUrl: data.coverImageUrl || undefined,
-        }) as any
-      );
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("excerpt", data.excerpt);
+      formData.append("content", data.content);
+      formData.append("category", data.category);
+      formData.append("status", data.status);
+      if (data.coverImageUrl) formData.append("coverImageUrl", data.coverImageUrl);
+      return dispatch(updateBlog(blogId, formData) as any);
     },
     [dispatch]
   );
