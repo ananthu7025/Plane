@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { createFAQ, updateFAQ } from "@/store/slices/faqSlice";
 import {
@@ -12,11 +15,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { FAQ_CATEGORIES } from "@/types/faqs";
 import type { FAQ } from "@/types/faqs";
+
+const faqFormSchema = z.object({
+  question: z.string().min(5, "Question must be at least 5 characters").max(500, "Question must not exceed 500 characters"),
+  answer:   z.string().min(10, "Answer must be at least 10 characters").max(2000, "Answer must not exceed 2000 characters"),
+  category: z.string().min(1, "Please select a category"),
+  isActive: z.boolean(),
+});
+
+type FAQFormData = z.infer<typeof faqFormSchema>;
 
 interface FAQFormDialogProps {
   isOpen: boolean;
@@ -24,63 +42,40 @@ interface FAQFormDialogProps {
   onClose: () => void;
 }
 
-interface FormState {
-  question: string;
-  answer: string;
-  category: string;
-  isActive: boolean;
-}
-
-const DEFAULT_FORM: FormState = {
-  question: "",
-  answer: "",
-  category: "General",
-  isActive: true,
-};
-
-export function FAQFormDialog({
-  isOpen,
-  editingFaq,
-  onClose,
-}: FAQFormDialogProps) {
+export function FAQFormDialog({ isOpen, editingFaq, onClose }: FAQFormDialogProps) {
   const dispatch = useAppDispatch();
   const { creating, updating } = useAppSelector((state) => state.faqs);
 
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const form = useForm<FAQFormData>({
+    resolver: zodResolver(faqFormSchema),
+    defaultValues: { question: "", answer: "", category: "General", isActive: true },
+  });
 
   useEffect(() => {
-    if (editingFaq) {
-      setForm({
-        question: editingFaq.question,
-        answer:   editingFaq.answer,
-        category: editingFaq.category,
-        isActive: editingFaq.isActive,
-      });
-    } else {
-      setForm(DEFAULT_FORM);
+    if (isOpen) {
+      form.reset(
+        editingFaq
+          ? { question: editingFaq.question, answer: editingFaq.answer, category: editingFaq.category, isActive: editingFaq.isActive }
+          : { question: "", answer: "", category: "General", isActive: true }
+      );
     }
-  }, [editingFaq]);
+  }, [editingFaq, isOpen, form]);
 
   const isSubmitting = creating || updating;
+  const questionLen = form.watch("question")?.length ?? 0;
+  const answerLen   = form.watch("answer")?.length ?? 0;
 
-  const questionLen = form.question.trim().length;
-  const answerLen   = form.answer.trim().length;
-  const isValid =
-    questionLen >= 5 && questionLen <= 500 &&
-    answerLen  >= 10 && answerLen  <= 2000;
-
-  const handleSubmit = async () => {
-    if (!isValid) return;
+  const onSubmit = async (data: FAQFormData) => {
     if (editingFaq) {
-      await dispatch(updateFAQ(editingFaq.id, form) as any);
+      await dispatch(updateFAQ(editingFaq.id, data) as any);
     } else {
-      await dispatch(createFAQ(form) as any);
+      await dispatch(createFAQ(data) as any);
     }
     handleClose();
   };
 
   const handleClose = () => {
-    setForm(DEFAULT_FORM);
+    form.reset();
     onClose();
   };
 
@@ -88,93 +83,95 @@ export function FAQFormDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            {editingFaq ? "Edit FAQ" : "Add New FAQ"}
-          </DialogTitle>
+          <DialogTitle>{editingFaq ? "Edit FAQ" : "Add New FAQ"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="faq-question">Question</Label>
-              <span className={`text-xs ${questionLen > 500 ? "text-destructive" : "text-muted-foreground"}`}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          {/* Question */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">
+                Question <span className="text-red-500">*</span>
+              </label>
+              <span className={`text-xs ${questionLen > 500 ? "text-red-500" : "text-muted-foreground"}`}>
                 {questionLen}/500
               </span>
             </div>
             <Input
-              id="faq-question"
-              value={form.question}
-              onChange={(e) => setForm({ ...form, question: e.target.value })}
               placeholder="Enter the question..."
+              {...form.register("question")}
               maxLength={500}
+              className={form.formState.errors.question ? "border-red-500" : ""}
             />
+            {form.formState.errors.question && (
+              <p className="text-sm text-red-500 mt-1">{form.formState.errors.question.message}</p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="faq-answer">Answer</Label>
-              <span className={`text-xs ${answerLen > 2000 ? "text-destructive" : "text-muted-foreground"}`}>
+          {/* Answer */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">
+                Answer <span className="text-red-500">*</span>
+              </label>
+              <span className={`text-xs ${answerLen > 2000 ? "text-red-500" : "text-muted-foreground"}`}>
                 {answerLen}/2000
               </span>
             </div>
             <Textarea
-              id="faq-answer"
-              value={form.answer}
-              onChange={(e) => setForm({ ...form, answer: e.target.value })}
               placeholder="Enter the answer..."
+              {...form.register("answer")}
               rows={4}
               maxLength={2000}
+              className={form.formState.errors.answer ? "border-red-500" : ""}
             />
+            {form.formState.errors.answer && (
+              <p className="text-sm text-red-500 mt-1">{form.formState.errors.answer.message}</p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="faq-category">Category</Label>
-            <select
-              id="faq-category"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+          {/* Category */}
+          <div>
+            <label className="text-sm font-medium block mb-2">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <Select
+              value={form.watch("category")}
+              onValueChange={(value) => form.setValue("category", value, { shouldValidate: true })}
             >
-              {FAQ_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className={form.formState.errors.category ? "border-red-500" : ""}>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {FAQ_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.category && (
+              <p className="text-sm text-red-500 mt-1">{form.formState.errors.category.message}</p>
+            )}
           </div>
 
+          {/* Active toggle */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="faq-active">Active</Label>
+            <label className="text-sm font-medium">Active</label>
             <Switch
-              id="faq-active"
-              checked={form.isActive}
-              onCheckedChange={(checked) =>
-                setForm({ ...form, isActive: checked })
-              }
+              checked={form.watch("isActive")}
+              onCheckedChange={(checked) => form.setValue("isActive", checked)}
             />
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !isValid}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {isSubmitting
-              ? "Saving..."
-              : editingFaq
-              ? "Save Changes"
-              : "Add FAQ"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              <Save className="w-4 h-4 mr-2" />
+              {isSubmitting ? "Saving..." : editingFaq ? "Save Changes" : "Add FAQ"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -26,7 +26,8 @@ import {
   setModerationPage,
 } from "@/store/slices/letterSlice";
 import { AdminReasonDialog } from "@/components/community";
-import { DeleteConfirmDialog } from "@/components/shared";
+import { DeleteConfirmDialog, StatCard, PaginationControls } from "@/components/shared";
+import { FileCheck, Clock, CheckCircle2, XCircle as XCircleIcon } from "lucide-react";
 
 export default function AdminLetters() {
   const dispatch = useAppDispatch();
@@ -130,6 +131,15 @@ export default function AdminLetters() {
     setDeleteConfirmation({ open: true, letterId });
   };
 
+  const getLetterStatusClass = (status: string) => {
+    switch (status) {
+      case "PENDING":  return "bg-yellow-100 text-yellow-700";
+      case "APPROVED": return "bg-green-100 text-green-700";
+      case "REJECTED": return "bg-red-100 text-red-700";
+      default:         return "bg-gray-100 text-gray-700";
+    }
+  };
+
   const handleConfirmDelete = () => {
     if (deleteConfirmation.letterId) {
       dispatch(deleteLetter(deleteConfirmation.letterId) as any);
@@ -149,38 +159,10 @@ export default function AdminLetters() {
         {/* Statistics */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
-                  <p className="text-sm text-slate-600 mt-1">Total Letters</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-yellow-600">{stats.pending}</div>
-                  <p className="text-sm text-slate-600 mt-1">Pending Review</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">{stats.approved}</div>
-                  <p className="text-sm text-slate-600 mt-1">Approved</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-600">{stats.rejected}</div>
-                  <p className="text-sm text-slate-600 mt-1">Rejected</p>
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard label="Total Letters"  value={stats.total}    icon={<FileCheck className="w-5 h-5 text-primary" />}         variant="primary" />
+            <StatCard label="Pending Review" value={stats.pending}  icon={<Clock className="w-5 h-5 text-yellow-500" />}           variant="warning" />
+            <StatCard label="Approved"       value={stats.approved} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />}     variant="success" />
+            <StatCard label="Rejected"       value={stats.rejected} icon={<XCircleIcon className="w-5 h-5 text-red-500" />}        variant="danger" />
           </div>
         )}
 
@@ -228,13 +210,7 @@ export default function AdminLetters() {
                         {new Date(letter.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      letter.status === "PENDING"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : letter.status === "APPROVED"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                    }`}>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getLetterStatusClass(letter.status)}`}>
                       {letter.status}
                     </span>
                   </div>
@@ -321,69 +297,50 @@ export default function AdminLetters() {
         </div>
 
         {/* Pagination */}
-        {moderationLetters.length > 0 && (
-          <div className="mt-8 flex justify-center gap-2">
-            <Button
-              variant="outline"
-              disabled={moderationPage === 1}
-              onClick={() => dispatch(setModerationPage(moderationPage - 1))}
-            >
-              Previous
-            </Button>
-            <span className="py-2 px-4 text-sm text-slate-600">
-              Page {moderationPage} {moderationPagination && `of ${moderationPagination.totalPages}`}
-            </span>
-            <Button
-              variant="outline"
-              disabled={!moderationPagination?.hasMore}
-              onClick={() => dispatch(setModerationPage(moderationPage + 1))}
-            >
-              Next
-            </Button>
+        {moderationLetters.length > 0 && moderationPagination && moderationPagination.totalPages > 1 && (
+          <div className="mt-8">
+            <PaginationControls
+              currentPage={moderationPage}
+              totalPages={moderationPagination.totalPages}
+              onPageChange={(page) => dispatch(setModerationPage(page))}
+            />
           </div>
         )}
 
         {/* View Letter Dialog */}
-        {viewLetterOpen && (
-          <Dialog open={!!viewLetterOpen} onOpenChange={() => setViewLetterOpen(null)}>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-              {moderationLetters.find((l) => l.id === viewLetterOpen) && (
+        {viewLetterOpen && (() => {
+          const viewingLetter = moderationLetters.find((l) => l.id === viewLetterOpen);
+          if (!viewingLetter) return null;
+          return (
+            <Dialog open={!!viewLetterOpen} onOpenChange={() => setViewLetterOpen(null)}>
+              <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                 <div className="space-y-4">
                   <DialogHeader>
-                    <DialogTitle>
-                      {moderationLetters.find((l) => l.id === viewLetterOpen)?.subject}
-                    </DialogTitle>
+                    <DialogTitle>{viewingLetter.subject}</DialogTitle>
                   </DialogHeader>
                   <div className="bg-amber-50/30 dark:bg-amber-950/10 rounded-lg p-6 border border-amber-200/30 dark:border-amber-800/20">
                     <div className="mb-4">
                       <p className="text-sm text-slate-600 mb-2">
-                        <strong>From:</strong> {moderationLetters.find((l) => l.id === viewLetterOpen)?.author?.fullName || "Unknown"} {moderationLetters.find((l) => l.id === viewLetterOpen)?.isAnonymous ? "(Anonymous)" : ""}
+                        <strong>From:</strong>{" "}
+                        {viewingLetter.author?.fullName || "Unknown"}
+                        {viewingLetter.isAnonymous ? " (Anonymous)" : ""}
                       </p>
                       <p className="text-sm text-slate-600">
                         <strong>Status:</strong>{" "}
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          moderationLetters.find((l) => l.id === viewLetterOpen)?.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : moderationLetters.find((l) => l.id === viewLetterOpen)?.status === "APPROVED"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                        }`}>
-                          {moderationLetters.find((l) => l.id === viewLetterOpen)?.status}
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getLetterStatusClass(viewingLetter.status)}`}>
+                          {viewingLetter.status}
                         </span>
                       </p>
                     </div>
-                    <div
-                      className="whitespace-pre-line leading-relaxed text-slate-700"
-                      style={{ fontFamily: "'Courier New', Courier, monospace", lineHeight: "1.8" }}
-                    >
-                      {moderationLetters.find((l) => l.id === viewLetterOpen)?.content}
+                    <div className="whitespace-pre-line leading-relaxed text-slate-700 font-mono">
+                      {viewingLetter.content}
                     </div>
                   </div>
                 </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        )}
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
 
         {/* Approve Confirmation Dialog */}
         <Dialog open={!!approveConfirmOpen} onOpenChange={() => setApproveConfirmOpen(null)}>

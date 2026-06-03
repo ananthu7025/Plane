@@ -34,6 +34,13 @@ import {
   Tag,
 } from "lucide-react";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -144,8 +151,6 @@ export function AdminCommunity() {
       );
     } else if (mainView === "banned") {
       dispatch(getBannedUsers({ page: filters.page }));
-    } else if (mainView === "categories") {
-      console.log("err");
     }
   }, [mainView, filters.page, activeTab, searchQuery, dispatch]);
 
@@ -157,7 +162,6 @@ export function AdminCommunity() {
     try {
       await dispatch(approvePost(postId));
       setApproveConfirmOpen(null);
-      // Refresh moderation posts
       dispatch(
         getPostsForModeration({
           page: filters.page,
@@ -165,8 +169,8 @@ export function AdminCommunity() {
           status: activeTab !== "all" ? activeTab : undefined,
         }),
       );
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error handled by Redux error state
     }
   };
 
@@ -174,7 +178,6 @@ export function AdminCommunity() {
     try {
       await dispatch(declinePost(postId, reason));
       setDeclineReasonDialogOpen(null);
-      // Refresh moderation posts
       dispatch(
         getPostsForModeration({
           page: filters.page,
@@ -182,8 +185,8 @@ export function AdminCommunity() {
           status: activeTab !== "all" ? activeTab : undefined,
         }),
       );
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error handled by Redux error state
     }
   };
 
@@ -191,7 +194,6 @@ export function AdminCommunity() {
     try {
       await dispatch(deletePostAdmin(postId));
       setDeletePostConfirmOpen(null);
-      // Refresh moderation posts
       dispatch(
         getPostsForModeration({
           page: filters.page,
@@ -199,8 +201,8 @@ export function AdminCommunity() {
           status: activeTab !== "all" ? activeTab : undefined,
         }),
       );
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error handled by Redux error state
     }
   };
 
@@ -215,8 +217,8 @@ export function AdminCommunity() {
 
       setIsCategoryDialogOpen(false);
       dispatch(getAllCategories());
-    } catch (err) {
-      console.error("Error creating category:", err);
+    } catch {
+      // error handled by Redux error state
     }
   };
 
@@ -232,18 +234,17 @@ export function AdminCommunity() {
     try {
       await dispatch(banUser(userId, reason));
       setBanUserDialogOpen(null);
-      // Refresh banned users list
       dispatch(getBannedUsers({ page: filters.page }));
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error handled by Redux error state
     }
   };
 
   const handleUnbanUser = async (userId: string) => {
     try {
       await dispatch(unbanUser(userId));
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error handled by Redux error state
     }
   };
 
@@ -479,19 +480,19 @@ export function AdminCommunity() {
                         : "Community Feed"}
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      <select
-                        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        disabled={loading}
-                      >
-                        <option value="all">All Categories</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter} disabled={loading}>
+                        <SelectTrigger className="h-9 w-40 text-sm">
+                          <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map((c) => (
+                            <SelectItem key={c.id} value={String(c.id)}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <div className="relative w-48">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input

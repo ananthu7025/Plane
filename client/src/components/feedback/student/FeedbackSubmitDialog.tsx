@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { submitFeedback } from "@/store/slices/feedbackSlice";
 import {
@@ -7,12 +10,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Star, Send } from "lucide-react";
 import { FEEDBACK_CATEGORY_META } from "@/types/feedback";
+
+const feedbackSubmitSchema = z.object({
+  category:    z.string().min(1, "Please select a category"),
+  rating:      z.number().int().min(1, "Please select a rating").max(5),
+  feedbackText: z.string().min(10, "Feedback must be at least 10 characters").max(2000, "Feedback must not exceed 2000 characters"),
+});
+
+type FeedbackSubmitFormData = z.infer<typeof feedbackSubmitSchema>;
 
 interface FeedbackSubmitDialogProps {
   isOpen: boolean;
@@ -27,29 +37,35 @@ export function FeedbackSubmitDialog({
 }: FeedbackSubmitDialogProps) {
   const dispatch = useAppDispatch();
   const { submitting } = useAppSelector((s) => s.feedback);
-
-  const [category, setCategory]       = useState(preselectedCategory ?? "");
-  const [rating, setRating]           = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [feedbackText, setFeedbackText] = useState("");
+
+  const form = useForm<FeedbackSubmitFormData>({
+    resolver: zodResolver(feedbackSubmitSchema),
+    defaultValues: { category: preselectedCategory ?? "", rating: 0, feedbackText: "" },
+  });
 
   useEffect(() => {
-    if (preselectedCategory) setCategory(preselectedCategory);
-  }, [preselectedCategory]);
+    if (isOpen) {
+      form.reset({ category: preselectedCategory ?? "", rating: 0, feedbackText: "" });
+      setHoverRating(0);
+    }
+  }, [isOpen, preselectedCategory, form]);
 
-  const isValid = !!category && rating > 0 && feedbackText.trim().length >= 10;
+  const feedbackLen = form.watch("feedbackText")?.length ?? 0;
+  const currentRating = form.watch("rating");
 
-  const handleSubmit = async () => {
-    if (!isValid) return;
-    await dispatch(submitFeedback({ category, rating, feedback: feedbackText }) as any);
+  const onSubmit = async (data: FeedbackSubmitFormData) => {
+    await dispatch(submitFeedback({
+      category: data.category,
+      rating:   data.rating,
+      feedback: data.feedbackText,
+    }) as any);
     handleClose();
   };
 
   const handleClose = () => {
-    setCategory(preselectedCategory ?? "");
-    setRating(0);
+    form.reset();
     setHoverRating(0);
-    setFeedbackText("");
     onClose();
   };
 
@@ -63,12 +79,17 @@ export function FeedbackSubmitDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
           {/* Category */}
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+          <div>
+            <label className="text-sm font-medium block mb-2">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <Select
+              value={form.watch("category")}
+              onValueChange={(value) => form.setValue("category", value, { shouldValidate: true })}
+            >
+              <SelectTrigger className={form.formState.errors.category ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -82,24 +103,29 @@ export function FeedbackSubmitDialog({
                 ))}
               </SelectContent>
             </Select>
+            {form.formState.errors.category && (
+              <p className="text-sm text-red-500 mt-1">{form.formState.errors.category.message}</p>
+            )}
           </div>
 
           {/* Star rating */}
-          <div className="space-y-2">
-            <Label>Rating</Label>
+          <div>
+            <label className="text-sm font-medium block mb-2">
+              Rating <span className="text-red-500">*</span>
+            </label>
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
-                  onClick={() => setRating(star)}
+                  onClick={() => form.setValue("rating", star, { shouldValidate: true })}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
                   className="p-1 transition-transform hover:scale-110"
                 >
                   <Star
                     className={`w-8 h-8 transition-colors ${
-                      star <= (hoverRating || rating)
+                      star <= (hoverRating || currentRating)
                         ? "text-yellow-400 fill-yellow-400"
                         : "text-muted-foreground"
                     }`}
@@ -107,34 +133,36 @@ export function FeedbackSubmitDialog({
                 </button>
               ))}
             </div>
+            {form.formState.errors.rating && (
+              <p className="text-sm text-red-500 mt-1">{form.formState.errors.rating.message}</p>
+            )}
           </div>
 
           {/* Feedback text */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Your Feedback</Label>
-              <span className="text-xs text-muted-foreground">
-                {feedbackText.trim().length}/2000
-              </span>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">
+                Your Feedback <span className="text-red-500">*</span>
+              </label>
+              <span className="text-xs text-muted-foreground">{feedbackLen}/2000</span>
             </div>
             <Textarea
               placeholder="Tell us what you think..."
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
+              {...form.register("feedbackText")}
               rows={4}
               maxLength={2000}
+              className={form.formState.errors.feedbackText ? "border-red-500" : ""}
             />
+            {form.formState.errors.feedbackText && (
+              <p className="text-sm text-red-500 mt-1">{form.formState.errors.feedbackText.message}</p>
+            )}
           </div>
 
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={!isValid || submitting}
-          >
+          <Button type="submit" className="w-full" disabled={submitting}>
             <Send className="w-4 h-4 mr-2" />
             {submitting ? "Submitting..." : "Submit Feedback"}
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

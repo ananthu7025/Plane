@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { respondToFeedback, clearError, clearSuccessMessage } from "@/store/slices/feedbackSlice";
-import { useEffect } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -14,6 +16,12 @@ import { Star, CheckCircle2, Send } from "lucide-react";
 import type { Feedback } from "@/types/feedback";
 import { getFeedbackCategoryMeta } from "@/types/feedback";
 
+const respondSchema = z.object({
+  response: z.string().min(5, "Response must be at least 5 characters").max(2000, "Response must not exceed 2000 characters"),
+});
+
+type RespondFormData = z.infer<typeof respondSchema>;
+
 interface FeedbackDetailDialogProps {
   feedback: Feedback | null;
   onClose: () => void;
@@ -22,27 +30,38 @@ interface FeedbackDetailDialogProps {
 export function FeedbackDetailDialog({ feedback, onClose }: FeedbackDetailDialogProps) {
   const dispatch = useAppDispatch();
   const { responding, error, successMessage } = useAppSelector((s) => s.feedback);
-  const [responseText, setResponseText] = useState("");
+
+  const form = useForm<RespondFormData>({
+    resolver: zodResolver(respondSchema),
+    defaultValues: { response: "" },
+  });
 
   useEffect(() => {
-    if (successMessage) { toast.success(successMessage); dispatch(clearSuccessMessage()); onClose(); }
-  }, [successMessage, dispatch, onClose]);
+    if (successMessage) {
+      toast.success(successMessage);
+      dispatch(clearSuccessMessage());
+      handleClose();
+    }
+  }, [successMessage, dispatch]);
 
   useEffect(() => {
     if (error) { toast.error(error); dispatch(clearError()); }
   }, [error, dispatch]);
 
-  const handleSend = () => {
-    if (!feedback || !responseText.trim()) return;
-    dispatch(respondToFeedback(feedback.id, responseText) as any);
-    setResponseText("");
+  const onSubmit = (data: RespondFormData) => {
+    if (!feedback) return;
+    dispatch(respondToFeedback(feedback.id, data.response) as any);
   };
 
-  const handleClose = () => { setResponseText(""); onClose(); };
+  const handleClose = () => {
+    form.reset();
+    onClose();
+  };
 
   if (!feedback) return null;
 
   const meta = getFeedbackCategoryMeta(feedback.category);
+  const responseLen = form.watch("response")?.length ?? 0;
 
   return (
     <Dialog open={!!feedback} onOpenChange={(open) => !open && handleClose()}>
@@ -76,7 +95,7 @@ export function FeedbackDetailDialog({ feedback, onClose }: FeedbackDetailDialog
             </div>
           </div>
 
-          {/* Category + subject + feedback text */}
+          {/* Category + subject + feedback */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge variant="outline">{meta.label}</Badge>
@@ -87,7 +106,7 @@ export function FeedbackDetailDialog({ feedback, onClose }: FeedbackDetailDialog
             <p className="p-3 rounded-lg bg-muted/50 text-sm">{feedback.feedback}</p>
           </div>
 
-          {/* Response area */}
+          {/* Response */}
           {feedback.response ? (
             <div className="space-y-2">
               <p className="text-sm font-medium flex items-center gap-2">
@@ -99,24 +118,26 @@ export function FeedbackDetailDialog({ feedback, onClose }: FeedbackDetailDialog
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Your Response</p>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">Your Response <span className="text-red-500">*</span></label>
+                <span className="text-xs text-muted-foreground">{responseLen}/2000</span>
+              </div>
               <Textarea
                 placeholder="Type your response..."
-                value={responseText}
-                onChange={(e) => setResponseText(e.target.value)}
+                {...form.register("response")}
                 rows={3}
                 maxLength={2000}
+                className={form.formState.errors.response ? "border-red-500" : ""}
               />
-              <Button
-                className="w-full"
-                onClick={handleSend}
-                disabled={!responseText.trim() || responding}
-              >
+              {form.formState.errors.response && (
+                <p className="text-sm text-red-500">{form.formState.errors.response.message}</p>
+              )}
+              <Button type="submit" className="w-full" disabled={responding}>
                 <Send className="w-4 h-4 mr-2" />
                 {responding ? "Sending..." : "Send Response"}
               </Button>
-            </div>
+            </form>
           )}
         </div>
       </DialogContent>

@@ -1,11 +1,28 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { Shield, Edit, Users, MoreVertical, Key, Plus } from "lucide-react";
 import { toast } from "sonner";
+
+const roleFormSchema = z.object({
+  name:        z.string().min(2, "Role name must be at least 2 characters").max(100),
+  description: z.string().max(500).optional(),
+});
+
+const permissionFormSchema = z.object({
+  name:        z.string().min(2, "Permission name must be at least 2 characters").max(100),
+  module:      z.string().min(2, "Module is required").max(50),
+  description: z.string().max(500).optional(),
+});
+
+type RoleFormData       = z.infer<typeof roleFormSchema>;
+type PermissionFormData = z.infer<typeof permissionFormSchema>;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,15 +80,20 @@ export function AdminRoles() {
   } | null>(null);
   const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [roleFormPermissions, setRoleFormPermissions] = useState<number[]>([]);
-  const [roleName, setRoleName] = useState("");
-  const [roleDescription, setRoleDescription] = useState("");
 
   // Permission creation state
   const [isCreatePermissionDialogOpen, setIsCreatePermissionDialogOpen] = useState(false);
-  const [permissionName, setPermissionName] = useState("");
-  const [permissionDescription, setPermissionDescription] = useState("");
-  const [permissionModule, setPermissionModule] = useState("");
   const [isCreatingPermission, setIsCreatingPermission] = useState(false);
+
+  const roleForm = useForm<RoleFormData>({
+    resolver: zodResolver(roleFormSchema),
+    defaultValues: { name: "", description: "" },
+  });
+
+  const permissionForm = useForm<PermissionFormData>({
+    resolver: zodResolver(permissionFormSchema),
+    defaultValues: { name: "", module: "", description: "" },
+  });
 
   useEffect(() => {
     dispatch(getAllRoles() as never);
@@ -91,16 +113,14 @@ export function AdminRoles() {
   const openCreateRoleDialog = () => {
     setIsCreatingRole(true);
     setEditingRole(null);
-    setRoleName("");
-    setRoleDescription("");
+    roleForm.reset({ name: "", description: "" });
     setIsRoleDialogOpen(true);
   };
 
   const openEditRoleDialog = (role: (typeof roles)[0]) => {
     setIsCreatingRole(false);
     setEditingRole(role);
-    setRoleName(role.name);
-    setRoleDescription(role.description || "");
+    roleForm.reset({ name: role.name, description: role.description || "" });
     setIsRoleDialogOpen(true);
   };
 
@@ -110,26 +130,11 @@ export function AdminRoles() {
     setIsPermissionsDialogOpen(true);
   };
 
-  const handleSaveRole = async () => {
-    if (!roleName.trim()) {
-      toast.error("Role name is required");
-      return;
-    }
-
+  const handleSaveRole = (data: RoleFormData) => {
     if (isCreatingRole) {
-      dispatch(
-        createRole({
-          name: roleName,
-          description: roleDescription || undefined,
-        }) as never,
-      );
+      dispatch(createRole({ name: data.name, description: data.description || undefined }) as never);
     } else if (editingRole) {
-      dispatch(
-        updateRole(editingRole.id, {
-          name: roleName,
-          description: roleDescription || undefined,
-        }) as never,
-      );
+      dispatch(updateRole(editingRole.id, { name: data.name, description: data.description || undefined }) as never);
     }
     setIsRoleDialogOpen(false);
   };
@@ -172,8 +177,7 @@ export function AdminRoles() {
     setIsRoleDialogOpen(false);
     setIsCreatingRole(false);
     setEditingRole(null);
-    setRoleName("");
-    setRoleDescription("");
+    roleForm.reset();
     setRoleFormPermissions([]);
   };
 
@@ -185,32 +189,15 @@ export function AdminRoles() {
     dispatch(getAllRoles() as never);
   };
 
-  const handleCreatePermission = async () => {
-    if (!permissionName.trim()) {
-      toast.error("Permission name is required");
-      return;
-    }
-    if (!permissionModule.trim()) {
-      toast.error("Module is required");
-      return;
-    }
-
+  const handleCreatePermission = async (data: PermissionFormData) => {
     setIsCreatingPermission(true);
     try {
-      await dispatch(
-        createPermission({
-          name: permissionName,
-          description: permissionDescription,
-          module: permissionModule,
-        }) as never
-      );
-      setPermissionName("");
-      setPermissionDescription("");
-      setPermissionModule("");
+      await dispatch(createPermission({ name: data.name, description: data.description, module: data.module }) as never);
+      permissionForm.reset();
       setIsCreatePermissionDialogOpen(false);
       toast.success("Permission created successfully");
       dispatch(getAllPermissions() as never);
-    } catch (error) {
+    } catch {
       toast.error("Failed to create permission");
     } finally {
       setIsCreatingPermission(false);
@@ -219,9 +206,7 @@ export function AdminRoles() {
 
   const closePermissionDialog = () => {
     setIsCreatePermissionDialogOpen(false);
-    setPermissionName("");
-    setPermissionDescription("");
-    setPermissionModule("");
+    permissionForm.reset();
   };
 
   return (
@@ -359,35 +344,36 @@ export function AdminRoles() {
               {isCreatingRole ? "Create New Role" : "Edit Role"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="roleName">Role Name</Label>
+          <form onSubmit={roleForm.handleSubmit(handleSaveRole)} className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="roleName">Role Name <span className="text-red-500">*</span></Label>
               <Input
                 id="roleName"
                 placeholder="e.g., Moderator, Reviewer"
-                value={roleName}
-                onChange={(e) => setRoleName(e.target.value)}
+                {...roleForm.register("name")}
+                className={`mt-2 ${roleForm.formState.errors.name ? "border-red-500" : ""}`}
               />
+              {roleForm.formState.errors.name && (
+                <p className="text-sm text-red-500 mt-1">{roleForm.formState.errors.name.message}</p>
+              )}
             </div>
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="roleDescription">Description (Optional)</Label>
               <Textarea
                 id="roleDescription"
                 placeholder="Describe this role's purpose"
-                value={roleDescription}
-                onChange={(e) => setRoleDescription(e.target.value)}
+                {...roleForm.register("description")}
                 rows={3}
+                className="mt-2"
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeRoleDialog}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveRole} disabled={updating || !roleName.trim()}>
-              {updating ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeRoleDialog}>Cancel</Button>
+              <Button type="submit" disabled={updating}>
+                {updating ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -470,65 +456,58 @@ export function AdminRoles() {
       </Dialog>
 
       {/* Create Permission Dialog */}
-      <Dialog
-        open={isCreatePermissionDialogOpen}
-        onOpenChange={closePermissionDialog}
-      >
+      <Dialog open={isCreatePermissionDialogOpen} onOpenChange={closePermissionDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Permission</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={permissionForm.handleSubmit(handleCreatePermission)} className="space-y-4 py-2">
             <div>
-              <Label htmlFor="perm-name">Permission Name</Label>
+              <Label htmlFor="perm-name">Permission Name <span className="text-red-500">*</span></Label>
               <Input
                 id="perm-name"
                 placeholder="e.g., CREATE_LETTER"
-                value={permissionName}
-                onChange={(e) => setPermissionName(e.target.value)}
+                {...permissionForm.register("name")}
                 disabled={isCreatingPermission}
-                className="mt-2"
+                className={`mt-2 ${permissionForm.formState.errors.name ? "border-red-500" : ""}`}
               />
+              {permissionForm.formState.errors.name && (
+                <p className="text-sm text-red-500 mt-1">{permissionForm.formState.errors.name.message}</p>
+              )}
             </div>
             <div>
-              <Label htmlFor="perm-module">Module</Label>
+              <Label htmlFor="perm-module">Module <span className="text-red-500">*</span></Label>
               <Input
                 id="perm-module"
                 placeholder="e.g., letters, roles, users"
-                value={permissionModule}
-                onChange={(e) => setPermissionModule(e.target.value)}
+                {...permissionForm.register("module")}
                 disabled={isCreatingPermission}
-                className="mt-2"
+                className={`mt-2 ${permissionForm.formState.errors.module ? "border-red-500" : ""}`}
               />
+              {permissionForm.formState.errors.module && (
+                <p className="text-sm text-red-500 mt-1">{permissionForm.formState.errors.module.message}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="perm-description">Description (Optional)</Label>
               <Textarea
                 id="perm-description"
                 placeholder="Describe what this permission allows..."
-                value={permissionDescription}
-                onChange={(e) => setPermissionDescription(e.target.value)}
+                {...permissionForm.register("description")}
                 disabled={isCreatingPermission}
                 className="mt-2"
                 rows={3}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={closePermissionDialog}
-              disabled={isCreatingPermission}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreatePermission}
-              disabled={isCreatingPermission}
-            >
-              {isCreatingPermission ? "Creating..." : "Create Permission"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closePermissionDialog} disabled={isCreatingPermission}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreatingPermission}>
+                {isCreatingPermission ? "Creating..." : "Create Permission"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </motion.div>
