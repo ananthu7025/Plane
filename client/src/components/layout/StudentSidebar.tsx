@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MessageSquare, LogOut, ChevronLeft, Plane, BookOpen, FileText } from "lucide-react";
+import { MessageSquare, LogOut, ChevronLeft, Plane, BookOpen, FileText, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
@@ -18,6 +18,7 @@ const navItems = [
   { icon: BookOpen, label: "Blogs", path: "/student/blogs" },
   { icon: FileText, label: "Letters", path: "/student/letters" },
   { icon: FileText, label: "Newsletters", path: "/student/newsletters" },
+  { icon: User, label: "Profile", path: "/student/profile" },
 ];
 
 export function StudentSidebar({

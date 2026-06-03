@@ -18,5 +18,6 @@ router.post("/reset-password", validate(authSchemas.resetPassword), authControll
 // Authenticated routes
 router.get("/profile", authMiddleware, authController.getProfile);
 router.post("/signout", authMiddleware, validate(authSchemas.refreshToken), authController.signout);
+router.post("/change-password", authMiddleware, validate(authSchemas.changePassword), authController.changePassword);
 
 export default router;

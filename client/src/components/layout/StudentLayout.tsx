@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Bell, Search, Menu } from "lucide-react";
@@ -8,6 +8,8 @@ import { StudentSidebar } from "./StudentSidebar";
 import { NotificationPanel } from "./NotificationPanel";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAppSelector } from "@/hooks/redux";
+import { ROUTES } from "@/lib/constants";
 
 export function StudentLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -15,6 +17,20 @@ export function StudentLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const ownProfile = useAppSelector((state) => state.userManagement.ownProfile);
+
+  const displayName = ownProfile?.fullName || user?.fullName || "User";
+  const displayRole = ownProfile?.role || user?.role || "Student";
+  const avatarSrc = ownProfile?.avatarMediaId
+    ? `/api/media/${ownProfile.avatarMediaId}`
+    : undefined;
+  const initials = displayName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,22 +110,19 @@ export function StudentLayout() {
               />
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              className="flex items-center gap-2 sm:gap-3 rounded-lg px-2 py-1 hover:bg-muted/60 transition-colors"
+              onClick={() => navigate(ROUTES.STUDENT_DASHBOARD + "/profile")}
+            >
               <Avatar className="w-8 h-8 sm:w-9 sm:h-9">
-                <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" />
-                <AvatarFallback>
-                  {(user?.fullName || "U").charAt(0).toUpperCase()}
-                </AvatarFallback>
+                <AvatarImage src={avatarSrc} />
+                <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
-              <div className="hidden md:block">
-                <p className="text-sm font-medium">
-                  {user?.fullName || "User"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {user?.role || "Student"}
-                </p>
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium">{displayName}</p>
+                <p className="text-xs text-muted-foreground">{displayRole}</p>
               </div>
-            </div>
+            </button>
           </div>
         </header>
 

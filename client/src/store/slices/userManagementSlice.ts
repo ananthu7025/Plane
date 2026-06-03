@@ -42,6 +42,11 @@ export interface UserProfile {
   lastLogin?: string | null;
   createdAt: string;
   updatedAt?: string;
+  qualification?: string | null;
+  institution?: string | null;
+  careerGoal?: string | null;
+  targetExam?: string | null;
+  enrolledSubjects?: string[];
 }
 
 export interface GetAllUsersResponse {
@@ -61,6 +66,11 @@ export interface UpdateProfilePayload {
   phone?: string;
   city?: string;
   country?: string;
+  qualification?: string;
+  institution?: string;
+  careerGoal?: string;
+  targetExam?: string;
+  enrolledSubjects?: string[];
 }
 
 // State Interface
@@ -410,6 +420,11 @@ export function getOwnProfile() {
         lastLogin: user.lastLogin,
         createdAt: user.profile?.createdAt || user.createdAt,
         updatedAt: user.profile?.updatedAt,
+        qualification: user.profile?.qualification,
+        institution: user.profile?.institution,
+        careerGoal: user.profile?.careerGoal,
+        targetExam: user.profile?.targetExam,
+        enrolledSubjects: user.profile?.enrolledSubjects ?? [],
       };
 
       dispatch(getOwnProfileSuccess(flattenedUser));

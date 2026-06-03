@@ -12,6 +12,7 @@ export const AUTH_ENDPOINTS = {
   SIGNOUT: '/api/auth/signout',
   FORGOT_PASSWORD: '/api/auth/forgot-password',
   RESET_PASSWORD: '/api/auth/reset-password',
+  CHANGE_PASSWORD: '/api/auth/change-password',
 } as const;
 
 export const USER_MANAGEMENT_ENDPOINTS = {

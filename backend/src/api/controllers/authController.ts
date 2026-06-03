@@ -206,3 +206,26 @@ export async function resetPassword(
     next(error);
   }
 }
+
+/**
+ * Change password for authenticated user
+ * POST /auth/change-password
+ */
+export async function changePassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.userId!;
+    const { currentPassword, newPassword } = req.body;
+
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+
+    logger.info("Password changed", "APP", { userId });
+
+    sendSuccess(res, 200, result);
+  } catch (error) {
+    next(error);
+  }
+}

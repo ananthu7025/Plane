@@ -37,4 +37,15 @@ export const authSchemas = {
   resendOTP: z.object({
     email: z.string().email('Invalid email format'),
   }),
+
+  changePassword: z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+      .regex(/[0-9]/, 'Password must contain a number'),
+  }).refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'New password must be different from current password',
+    path: ['newPassword'],
+  }),
 };

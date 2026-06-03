@@ -1,108 +1,61 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
-import { axiosInstance } from '@/api/client';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import {
+  Users,
+  Mail,
+  BarChart2,
+  Shield,
+  Settings,
+  Flag,
+  BookOpen,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+
+const features = [
+  { icon: BarChart2, label: "Analytics", description: "Platform usage, engagement, and growth metrics" },
+  { icon: Users, label: "User Overview", description: "Active students, mentors, and role distribution" },
+  { icon: Flag, label: "Moderation Queue", description: "Flagged content awaiting review" },
+  { icon: Mail, label: "Email Campaigns", description: "Broadcast announcements to students" },
+  { icon: BookOpen, label: "Course Insights", description: "Enrolment rates and course performance" },
+  { icon: Settings, label: "System Settings", description: "Platform configuration and feature flags" },
+];
 
 export default function AdminDashboard() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
-  const [testError, setTestError] = useState<string | null>(null);
-
-  const handleTestApiCall = async () => {
-    setIsLoading(true);
-    setTestResult(null);
-    setTestError(null);
-
-    try {
-      const response = await axiosInstance.get('/api/auth/profile');
-      setTestResult(response.data);
-      toast.success('API call successful! Token refresh is working.');
-      console.log('[TEST] API response:', response.data);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message || 'API call failed';
-      setTestError(errorMsg);
-      toast.error(`API call failed: ${errorMsg}`);
-      console.error('[TEST] API error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { user } = useAuth();
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-gray-600">Manage and oversee platform activities</p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          Admin Dashboard{user?.fullName ? ` — ${user.fullName}` : ""}
+        </h1>
+        <p className="text-muted-foreground mt-1">Platform overview and management tools are being set up.</p>
       </div>
 
-      {/* Test Section */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
-        <h2 className="text-xl font-semibold mb-2">Token Refresh Test</h2>
-        <p className="text-sm text-gray-700 mb-4">
-          Test the automatic token refresh mechanism. Wait 1 minute after login for the access token to expire,
-          then click the button below. The API call should automatically refresh your tokens without you seeing a login redirect.
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {features.map(({ icon: Icon, label, description }) => (
+          <Card key={label} className="opacity-60">
+            <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Icon className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold">{label}</p>
+                <p className="text-xs text-muted-foreground mt-1">{description}</p>
+              </div>
+              <span className="text-xs font-medium text-muted-foreground/70 border border-border rounded-full px-3 py-0.5">
+                Coming Soon
+              </span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-dashed border-border p-8 text-center">
+        <Shield className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+        <p className="font-medium text-muted-foreground">Dashboard overview coming soon</p>
+        <p className="text-sm text-muted-foreground/70 mt-1">
+          Key metrics, recent activity, and moderation alerts will appear here.
         </p>
-
-        <button
-          onClick={handleTestApiCall}
-          disabled={isLoading}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition flex items-center justify-center"
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isLoading ? 'Testing API...' : 'Test API Call with Token Refresh'}
-        </button>
-
-        {testError && (
-          <div className="mt-4 rounded-lg bg-red-100 p-4 text-red-800">
-            <p className="font-semibold">Error:</p>
-            <p className="text-sm">{testError}</p>
-          </div>
-        )}
-
-        {testResult && (
-          <div className="mt-4 rounded-lg bg-green-100 p-4 text-green-800">
-            <p className="font-semibold">Success! Response:</p>
-            <pre className="mt-2 overflow-auto rounded bg-white p-2 text-xs text-gray-800 max-h-48">
-              {JSON.stringify(testResult, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-4">
-        {[
-          { label: 'Total Students', value: '1,234', icon: '👥' },
-          { label: 'Active Posts', value: '45', icon: '📝' },
-          { label: 'Letters Submitted', value: '89', icon: '✉️' },
-          { label: 'Pending Reviews', value: '12', icon: '⏳' },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-6">
-            <div className="text-center">
-              <div className="text-3xl mb-2">{stat.icon}</div>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-sm text-gray-600">{stat.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Coming Soon Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {[
-          'Moderation Queue',
-          'Analytics',
-          'User Management',
-          'System Settings',
-        ].map((feature) => (
-          <div key={feature} className="rounded-lg border border-gray-200 bg-white p-6 opacity-50">
-            <div className="text-center">
-              <p className="text-lg font-semibold">{feature}</p>
-              <p className="text-xs text-gray-500">Coming Soon</p>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

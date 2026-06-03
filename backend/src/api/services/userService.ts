@@ -6,13 +6,16 @@ import { logger } from "../../utils/logger.js";
 
 /**
  * Get user profile by userId
- * Returns user + profile information
+ * Returns user + profile information including academic fields
  */
 export async function getUserProfile(userId: string) {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: { id: true, email: true, status: true, createdAt: true },
-    with: { profile: true },
+    with: {
+      profile: true,
+      role: { columns: { name: true } },
+    },
   });
 
   if (!user) {
@@ -24,16 +27,22 @@ export async function getUserProfile(userId: string) {
   return {
     id: user.id,
     email: user.email,
+    role: user.role?.name ?? "STUDENT",
     status: user.status,
-    profile: user.profile || {
-      fullName: "Unknown",
-      bio: null,
-      phone: null,
-      city: null,
-      country: null,
-      reputationScore: 0,
-      verified: false,
-      avatarMediaId: null,
+    profile: {
+      fullName: user.profile?.fullName ?? "Unknown",
+      bio: user.profile?.bio ?? null,
+      phone: user.profile?.phone ?? null,
+      city: user.profile?.city ?? null,
+      country: user.profile?.country ?? null,
+      avatarMediaId: user.profile?.avatarMediaId ?? null,
+      reputationScore: user.profile?.reputationScore ?? 0,
+      verified: user.profile?.verified ?? false,
+      qualification: user.profile?.qualification ?? null,
+      institution: user.profile?.institution ?? null,
+      careerGoal: user.profile?.careerGoal ?? null,
+      targetExam: user.profile?.targetExam ?? null,
+      enrolledSubjects: user.profile?.enrolledSubjects ?? [],
     },
     createdAt: user.createdAt,
   };
@@ -41,7 +50,7 @@ export async function getUserProfile(userId: string) {
 
 /**
  * Update user profile
- * Updates fields in userProfiles table
+ * Updates fields in userProfiles table including academic fields
  */
 export async function updateUserProfile(
   userId: string,
@@ -51,9 +60,13 @@ export async function updateUserProfile(
     phone?: string;
     city?: string;
     country?: string;
+    qualification?: string;
+    institution?: string;
+    careerGoal?: string;
+    targetExam?: string;
+    enrolledSubjects?: string[];
   }
 ) {
-  // Verify user exists
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
   });
@@ -62,7 +75,6 @@ export async function updateUserProfile(
     throw new NotFoundError("User not found");
   }
 
-  // Check if profile exists
   const existingProfile = await db.query.userProfiles.findFirst({
     where: eq(userProfiles.userId, userId),
   });
@@ -70,29 +82,37 @@ export async function updateUserProfile(
   let updatedProfile;
 
   if (!existingProfile) {
-    // Create profile if it doesn't exist
     updatedProfile = await db
       .insert(userProfiles)
       .values({
         userId,
-        fullName: data.fullName || user.id,
+        fullName: data.fullName ?? "Unknown",
         phone: data.phone,
         bio: data.bio,
         city: data.city,
         country: data.country,
+        qualification: data.qualification,
+        institution: data.institution,
+        careerGoal: data.careerGoal,
+        targetExam: data.targetExam,
+        enrolledSubjects: data.enrolledSubjects,
       })
       .returning();
   } else {
-    // Update existing profile
-    const updateData: any = {
+    const updateData: Partial<typeof userProfiles.$inferInsert> = {
       updatedAt: new Date(),
     };
 
-    if (data.fullName) updateData.fullName = data.fullName;
-    if (data.bio) updateData.bio = data.bio;
-    if (data.phone) updateData.phone = data.phone;
-    if (data.city) updateData.city = data.city;
-    if (data.country) updateData.country = data.country;
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.bio !== undefined) updateData.bio = data.bio;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.city !== undefined) updateData.city = data.city;
+    if (data.country !== undefined) updateData.country = data.country;
+    if (data.qualification !== undefined) updateData.qualification = data.qualification;
+    if (data.institution !== undefined) updateData.institution = data.institution;
+    if (data.careerGoal !== undefined) updateData.careerGoal = data.careerGoal;
+    if (data.targetExam !== undefined) updateData.targetExam = data.targetExam;
+    if (data.enrolledSubjects !== undefined) updateData.enrolledSubjects = data.enrolledSubjects;
 
     updatedProfile = await db
       .update(userProfiles)
@@ -115,6 +135,11 @@ export async function updateUserProfile(
     avatarMediaId: profile.avatarMediaId,
     reputationScore: profile.reputationScore,
     verified: profile.verified,
+    qualification: profile.qualification,
+    institution: profile.institution,
+    careerGoal: profile.careerGoal,
+    targetExam: profile.targetExam,
+    enrolledSubjects: profile.enrolledSubjects ?? [],
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
   };

@@ -611,3 +611,31 @@ export async function resetPassword(email: string, token: string, newPassword: s
     message: "Password reset successfully. Please sign in with your new password",
   };
 }
+
+/**
+ * Change password for an authenticated user
+ * Verifies current password before updating to new password
+ */
+export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  const isMatch = await comparePassword(currentPassword, user.passwordHash);
+  if (!isMatch) {
+    throw new UnauthorizedError("Current password is incorrect");
+  }
+
+  const newHash = await hashPassword(newPassword);
+
+  await db
+    .update(users)
+    .set({ passwordHash: newHash, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  return { message: "Password changed successfully" };
+}
