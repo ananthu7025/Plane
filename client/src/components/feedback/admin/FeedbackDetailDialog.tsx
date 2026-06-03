@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
-import { respondToFeedback, setSelectedFeedback, clearError, clearSuccessMessage } from "@/store/slices/feedbackSlice";
+import { respondToFeedback, clearError, clearSuccessMessage } from "@/store/slices/feedbackSlice";
 import { useEffect } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,

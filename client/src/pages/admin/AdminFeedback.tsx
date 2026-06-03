@@ -7,7 +7,6 @@ import {
   fetchFeedbackAnalytics,
   setSelectedFeedback,
   setAdminSearch,
-  setAdminStatusFilter,
   clearError,
   clearSuccessMessage,
 } from "@/store/slices/feedbackSlice";
@@ -25,7 +24,6 @@ import { FeedbackDetailDialog } from "@/components/feedback/admin/FeedbackDetail
 import {
   MessageSquare, Star, CheckCircle2, Clock, Search, AlertCircle, Loader2,
 } from "lucide-react";
-import type { Feedback } from "@/types/feedback";
 
 export default function AdminFeedback() {
   const dispatch = useAppDispatch();
