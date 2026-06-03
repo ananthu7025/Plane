@@ -15,6 +15,7 @@ import communityRoutes from "./api/routes/community.js";
 import newsletterRoutes from "./api/routes/newsletters.js";
 import blogRoutes from "./api/routes/blogs.js";
 import faqRoutes from "./api/routes/faqs.js";
+import feedbackRoutes from "./api/routes/feedback.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { rateLimit, getRateLimitStats } from "./middleware/rateLimit.js";
 import { startEmailProcessor, getEmailQueueStatus } from "./utils/emailService.js";
@@ -132,6 +133,7 @@ app.use("/api/community", communityRoutes);
 app.use("/api/letters", letterRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/faqs", faqRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 // ========== 404 Handler ==========
 app.use("*", (req, res) => {

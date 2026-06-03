@@ -53,6 +53,12 @@ const navGroups = [
       { icon: HelpCircle, label: "FAQs", path: "/admin/faqs" },
     ],
   },
+  {
+    label: "Business",
+    items: [
+      { icon: MessageSquare, label: "Feedback", path: "/admin/feedback" },
+    ],
+  },
 ];
 
 export function AdminSidebar({

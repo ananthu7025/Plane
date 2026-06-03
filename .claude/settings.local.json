@@ -33,7 +33,12 @@
       "PowerShell(Get-ChildItem -Recurse -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\UI\\\\src\" | Where-Object { $_.Name -match \"faq\" -or $_.Name -match \"FAQ\" } | Select-Object FullName)",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\backend\\\\src\\\\api\\\\services\\\\faq\")",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\backend\\\\src\\\\api\\\\controllers\\\\faq\")",
-      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\client\\\\src\\\\components\\\\faqs\\\\admin\")"
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\client\\\\src\\\\components\\\\faqs\\\\admin\")",
+      "PowerShell(Get-ChildItem -Recurse -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\UI\\\\src\" | Where-Object { $_.Name -match \"feedback\" -or $_.Name -match \"Feedback\" } | Select-Object FullName)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\backend\\\\src\\\\api\\\\services\\\\feedback\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\backend\\\\src\\\\api\\\\controllers\\\\feedback\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\client\\\\src\\\\components\\\\feedback\\\\admin\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\\\\client\\\\src\\\\components\\\\feedback\\\\student\")"
     ]
   }
 }

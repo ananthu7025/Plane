@@ -127,6 +127,17 @@ export const BLOGS_ENDPOINTS = {
   RECORD_VIEW: (blogId: number) => `/api/blogs/${blogId}/view`,
 } as const;
 
+export const FEEDBACK_ENDPOINTS = {
+  // Student
+  SUBMIT:     '/api/feedback',
+  GET_MY:     '/api/feedback/my',
+  // Admin
+  GET_ALL:    '/api/feedback/admin',
+  ANALYTICS:  '/api/feedback/admin/analytics',
+  GET_DETAIL: (id: number) => `/api/feedback/admin/${id}`,
+  RESPOND:    (id: number) => `/api/feedback/admin/${id}/respond`,
+} as const;
+
 export const FAQ_ENDPOINTS = {
   // Public
   GET_PUBLIC_FAQS: '/api/faqs',

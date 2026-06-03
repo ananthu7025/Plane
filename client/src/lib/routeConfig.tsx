@@ -22,7 +22,9 @@ import Newsletters from "@/pages/student/Newsletters";
 import AdminNewsletters from "@/pages/admin/AdminNewsletters";
 import AdminBlogs from "@/pages/admin/AdminBlogs";
 import AdminFAQs from "@/pages/admin/AdminFAQs";
+import AdminFeedback from "@/pages/admin/AdminFeedback";
 import StudentBlogs from "@/pages/student/StudentBlogs";
+import StudentFeedback from "@/pages/student/StudentFeedback";
 import StudentProfile from "@/pages/student/StudentProfile";
 
 export interface RouteConfig {
@@ -106,6 +108,10 @@ export const studentRoutes: RouteConfig[] = [
         path: "profile",
         element: <StudentProfile />,
       },
+      {
+        path: "feedback",
+        element: <StudentFeedback />,
+      },
     ],
   },
 ];
@@ -152,6 +158,10 @@ export const adminRoutes: RouteConfig[] = [
       {
         path: "faqs",
         element: <AdminFAQs />,
+      },
+      {
+        path: "feedback",
+        element: <AdminFeedback />,
       },
     ],
   },

@@ -39,6 +39,9 @@ export const Permissions = {
   // FAQs (1)
   MANAGE_FAQS: "MANAGE_FAQS",
 
+  // Feedback (1)
+  MANAGE_FEEDBACK: "MANAGE_FEEDBACK",
+
   // User Management (5)
   MANAGE_USERS: "MANAGE_USERS",
   VIEW_USERS: "VIEW_USERS",

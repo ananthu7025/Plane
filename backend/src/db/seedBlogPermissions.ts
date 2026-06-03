@@ -14,11 +14,16 @@ const BLOG_PERMISSIONS = [
     module: "faqs",
     description: "Can create, edit, reorder, toggle, and delete FAQs",
   },
+  {
+    name: "MANAGE_FEEDBACK",
+    module: "feedback",
+    description: "Can view all student feedback and send responses",
+  },
 ];
 
 // Roles that receive each permission
 const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
-  ADMIN: ["MANAGE_BLOGS", "MANAGE_FAQS"],
+  ADMIN: ["MANAGE_BLOGS", "MANAGE_FAQS", "MANAGE_FEEDBACK"],
   MENTOR: [],
   STUDENT: [],
 };

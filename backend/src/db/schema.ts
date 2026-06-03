@@ -490,6 +490,30 @@ export const emailQueue = pgTable(
   })
 );
 
+export const studentFeedback = pgTable(
+  "student_feedback",
+  {
+    id:          integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId:   uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    category:    varchar("category", { length: 50 }).notNull(),
+    subject:     varchar("subject", { length: 300 }),
+    rating:      integer("rating").notNull(),
+    feedback:    text("feedback").notNull(),
+    status:      varchar("status", { length: 20 }).notNull().default("pending"),
+    response:    text("response"),
+    respondedBy: uuid("responded_by").references(() => users.id, { onDelete: "set null" }),
+    respondedAt: timestamp("responded_at"),
+    createdAt:   timestamp("created_at").defaultNow().notNull(),
+    updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    studentIdIdx:  index("student_feedback_student_id_idx").on(table.studentId),
+    statusIdx:     index("student_feedback_status_idx").on(table.status),
+    categoryIdx:   index("student_feedback_category_idx").on(table.category),
+    createdAtIdx:  index("student_feedback_created_at_idx").on(table.createdAt),
+  })
+);
+
 export const faqs = pgTable(
   "faqs",
   {

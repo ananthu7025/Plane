@@ -208,6 +208,19 @@ export class BlogContentTooLongError extends AppError {
   }
 }
 
+// Feedback Module Errors
+export class FeedbackNotFoundError extends AppError {
+  constructor(message: string = "Feedback not found") {
+    super(404, "FEEDBACK_NOT_FOUND", message);
+  }
+}
+
+export class FeedbackAlreadyRespondedError extends AppError {
+  constructor() {
+    super(400, "FEEDBACK_ALREADY_RESPONDED", "This feedback already has a response");
+  }
+}
+
 // FAQ Module Errors
 export class FAQNotFoundError extends AppError {
   constructor(message: string = "FAQ not found") {
