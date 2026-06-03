@@ -20,6 +20,8 @@ import Letters from "@/pages/student/Letters";
 import AdminLetters from "@/pages/admin/AdminLetters";
 import Newsletters from "@/pages/student/Newsletters";
 import AdminNewsletters from "@/pages/admin/AdminNewsletters";
+import AdminBlogs from "@/pages/admin/AdminBlogs";
+import StudentBlogs from "@/pages/student/StudentBlogs";
 
 export interface RouteConfig {
   path: string;
@@ -90,6 +92,14 @@ export const studentRoutes: RouteConfig[] = [
         path: "newsletters",
         element: <Newsletters />,
       },
+      {
+        path: "blogs",
+        element: <StudentBlogs />,
+      },
+      {
+        path: "blogs/:blogId",
+        element: <StudentBlogs />,
+      },
     ],
   },
 ];
@@ -128,6 +138,10 @@ export const adminRoutes: RouteConfig[] = [
       {
         path: "newsletters",
         element: <AdminNewsletters />,
+      },
+      {
+        path: "blogs",
+        element: <AdminBlogs />,
       },
     ],
   },

@@ -15,7 +15,8 @@ interface StudentSidebarProps {
 
 const navItems = [
   { icon: MessageSquare, label: "Community", path: "/student/community" },
-  { icon: BookOpen, label: "Letters", path: "/student/letters" },
+  { icon: BookOpen, label: "Blogs", path: "/student/blogs" },
+  { icon: FileText, label: "Letters", path: "/student/letters" },
   { icon: FileText, label: "Newsletters", path: "/student/newsletters" },
 ];
 

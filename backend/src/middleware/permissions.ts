@@ -8,15 +8,38 @@ import {
 import { ForbiddenError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
 
-// Extend Express Request to include user info
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-      token?: string;
-      userPermissions?: string[];
+// Note: Express Request interface is extended in src/types/request.ts
+// This middleware adds no additional fields beyond what's already defined
+
+/**
+ * Middleware to check if user has one of the required roles
+ * Usage: router.post("/endpoint", authMiddleware, permissionMiddleware(["ADMIN"]), handler)
+ */
+export function permissionMiddleware(allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      if (!req.roleName) {
+        throw new ForbiddenError(
+          "User role not found",
+          "UNAUTHORIZED"
+        );
+      }
+
+      if (!allowedRoles.includes(req.roleName)) {
+        logger.warn(
+          `User ${req.userId} with role ${req.roleName} denied access`
+        );
+        throw new ForbiddenError(
+          `Insufficient role. Required: ${allowedRoles.join(", ")}`,
+          "INSUFFICIENT_ROLE"
+        );
+      }
+
+      next();
+    } catch (error) {
+      next(error);
     }
-  }
+  };
 }
 
 /**

@@ -109,6 +109,23 @@ export const NEWSLETTER_ENDPOINTS = {
   CHECK_NEWSLETTER_ACCESS: (id: string) => `/api/newsletters/${id}/access`,
 } as const;
 
+export const BLOGS_ENDPOINTS = {
+  // Admin Endpoints
+  CREATE_BLOG: '/api/blogs/admin',
+  GET_ADMIN_BLOGS: '/api/blogs/admin',
+  GET_ADMIN_BLOG_DETAIL: (blogId: number) => `/api/blogs/admin/${blogId}`,
+  UPDATE_BLOG: (blogId: number) => `/api/blogs/admin/${blogId}`,
+  DELETE_BLOG: (blogId: number) => `/api/blogs/admin/${blogId}`,
+  PUBLISH_BLOG: (blogId: number) => `/api/blogs/admin/${blogId}/publish`,
+
+  // Public/Student Endpoints
+  GET_BLOGS: '/api/blogs',
+  GET_BLOG_DETAIL: (blogId: number) => `/api/blogs/${blogId}`,
+  GET_CATEGORIES: '/api/blogs/categories',
+  ACKNOWLEDGE_BLOG: (blogId: number) => `/api/blogs/${blogId}/acknowledge`,
+  RECORD_VIEW: (blogId: number) => `/api/blogs/${blogId}/view`,
+} as const;
+
 // Route Paths
 export const ROUTES = {
   HOME: '/',
@@ -119,8 +136,11 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   STUDENT_DASHBOARD: '/student',
+  STUDENT_BLOGS: '/student/blogs',
+  STUDENT_BLOG_DETAIL: '/student/blogs/:blogId',
   ADMIN_DASHBOARD: '/admin',
   ADMIN_USERS: '/admin/users',
+  ADMIN_BLOGS: '/admin/blogs',
   NOT_FOUND: '*',
 } as const;
 

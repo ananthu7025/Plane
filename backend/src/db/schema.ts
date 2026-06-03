@@ -611,6 +611,139 @@ export const newslettersRelations = relations(newsletters, ({ one }) => ({
   uploadedByUser: one(users, { fields: [newsletters.uploadedBy], references: [users.id] }),
 }));
 
+// ============================================================================
+// BLOGS TABLE
+// ============================================================================
+
+export const blogs = pgTable(
+  "blogs",
+  {
+    // Primary & Identifiers
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+
+    // Content
+    title: varchar("title", { length: 255 }).notNull(),
+    excerpt: text("excerpt").notNull(),
+    content: text("content").notNull(),
+    coverImageUrl: varchar("cover_image_url", { length: 500 }),
+
+    // Metadata
+    category: varchar("category", { length: 50 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+
+    // Relations
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+
+    // Engagement Metrics
+    viewCount: integer("view_count").notNull().default(0),
+    acknowledgementCount: integer("acknowledgement_count").notNull().default(0),
+    commentCount: integer("comment_count").notNull().default(0),
+
+    // Timestamps
+    publishedDate: timestamp("published_date"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at"), // Soft delete
+  },
+  (table) => ({
+    statusIdx: index("blogs_status_idx").on(table.status),
+    categoryIdx: index("blogs_category_idx").on(table.category),
+    publishedDateIdx: index("blogs_published_date_idx").on(table.publishedDate),
+    authorIdIdx: index("blogs_author_id_idx").on(table.authorId),
+    deletedAtIdx: index("blogs_deleted_at_idx").on(table.deletedAt),
+  })
+);
+
+// ============================================================================
+// BLOG ACKNOWLEDGEMENTS TABLE
+// ============================================================================
+
+export const blogAcknowledgements = pgTable(
+  "blog_acknowledgements",
+  {
+    // Primary & Identifiers
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    blogId: integer("blog_id")
+      .notNull()
+      .references(() => blogs.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    blogIdIdx: index("blog_ack_blog_id_idx").on(table.blogId),
+    userIdIdx: index("blog_ack_user_id_idx").on(table.userId),
+    uniqueAckIdx: uniqueIndex("blog_ack_unique_idx").on(table.blogId, table.userId),
+  })
+);
+
+// ============================================================================
+// BLOG VIEWS TABLE (Optional - for analytics)
+// ============================================================================
+
+export const blogViews = pgTable(
+  "blog_views",
+  {
+    // Primary & Identifiers
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    blogId: integer("blog_id")
+      .notNull()
+      .references(() => blogs.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+
+    // Timestamps
+    viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    blogIdIdx: index("blog_views_blog_id_idx").on(table.blogId),
+    userIdIdx: index("blog_views_user_id_idx").on(table.userId),
+  })
+);
+
+// ============================================================================
+// BLOG RELATIONS
+// ============================================================================
+
+export const blogsRelations = relations(blogs, ({ one, many }) => ({
+  author: one(users, {
+    fields: [blogs.authorId],
+    references: [users.id],
+  }),
+  acknowledgements: many(blogAcknowledgements),
+  views: many(blogViews),
+}));
+
+export const blogAcknowledgementsRelations = relations(blogAcknowledgements, ({ one }) => ({
+  blog: one(blogs, {
+    fields: [blogAcknowledgements.blogId],
+    references: [blogs.id],
+  }),
+  user: one(users, {
+    fields: [blogAcknowledgements.userId],
+    references: [users.id],
+  }),
+}));
+
+export const blogViewsRelations = relations(blogViews, ({ one }) => ({
+  blog: one(blogs, {
+    fields: [blogViews.blogId],
+    references: [blogs.id],
+  }),
+  user: one(users, {
+    fields: [blogViews.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
+export type Blog = typeof blogs.$inferSelect;
+export type BlogInsert = typeof blogs.$inferInsert;
+export type BlogAcknowledgement = typeof blogAcknowledgements.$inferSelect;
+export type BlogAcknowledgementInsert = typeof blogAcknowledgements.$inferInsert;
+export type BlogView = typeof blogViews.$inferSelect;
+export type BlogViewInsert = typeof blogViews.$inferInsert;
 export type Newsletter = typeof newsletters.$inferSelect;
 export type NewsletterInsert = typeof newsletters.$inferInsert;

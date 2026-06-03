@@ -61,6 +61,44 @@ export async function uploadPDFToCloudinary(file: Express.Multer.File, folder: s
 }
 
 /**
+ * Upload an image to Cloudinary (for blog cover images)
+ */
+export async function uploadImageToCloudinary(file: Express.Multer.File, folder: string) {
+  let tempFileDeleted = false;
+  try {
+    await fs.access(file.path);
+
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder: `planeandprop/blogs/${folder}`,
+      resource_type: "image",
+      use_filename: true,
+      unique_filename: true,
+      overwrite: false,
+    });
+
+    try {
+      await fs.unlink(file.path);
+      tempFileDeleted = true;
+    } catch (unlinkError) {
+      console.warn("Failed to delete temp file:", file.path, unlinkError);
+    }
+
+    return {
+      publicId: result.public_id,
+      url: result.secure_url,
+    };
+  } catch (error) {
+    if (!tempFileDeleted) {
+      try {
+        await fs.unlink(file.path);
+      } catch {}
+    }
+    console.error("Cloudinary image upload error:", error);
+    throw new Error("Failed to upload image to Cloudinary");
+  }
+}
+
+/**
  * Delete a file from Cloudinary
  */
 export async function deleteFromCloudinary(publicId: string) {

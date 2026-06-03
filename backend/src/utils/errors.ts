@@ -182,3 +182,28 @@ export class InvalidPaginationError extends AppError {
     super(400, "INVALID_PAGINATION", message);
   }
 }
+
+// Blog Module Errors
+export class BlogNotFoundError extends AppError {
+  constructor(message: string = "Blog not found") {
+    super(404, "BLOG_NOT_FOUND", message);
+  }
+}
+
+export class BlogAlreadyExistsError extends AppError {
+  constructor(message: string = "Blog already exists") {
+    super(409, "BLOG_ALREADY_EXISTS", message);
+  }
+}
+
+export class InvalidBlogStatusError extends AppError {
+  constructor(message: string = "Invalid blog status") {
+    super(400, "INVALID_BLOG_STATUS", message);
+  }
+}
+
+export class BlogContentTooLongError extends AppError {
+  constructor(message: string = "Blog content exceeds maximum length") {
+    super(400, "BLOG_CONTENT_TOO_LONG", message);
+  }
+}

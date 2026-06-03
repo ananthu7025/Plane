@@ -21,7 +21,11 @@
       "Bash(taskkill /PID 43932 /F)",
       "Bash(kill -9 43932)",
       "Bash(npm run type-check)",
-      "Bash(grep -n \"<input\\\\|<textarea\\\\|<select\" /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/auth/*.tsx /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/AdminRoles.tsx /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/AdminStudents.tsx)"
+      "Bash(grep -n \"<input\\\\|<textarea\\\\|<select\" /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/auth/*.tsx /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/AdminRoles.tsx /c/Users/Anathapadmanabhan/Desktop/PlaneAndProp/client/src/pages/admin/AdminStudents.tsx)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\PlaneAndProp\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Anathapadmanabhan\\\\Desktop\\\\UI\" -Recurse -Force)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }
