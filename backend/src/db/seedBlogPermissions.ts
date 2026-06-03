@@ -9,11 +9,16 @@ const BLOG_PERMISSIONS = [
     module: "blogs",
     description: "Can create, edit, publish, and delete blog posts",
   },
+  {
+    name: "MANAGE_FAQS",
+    module: "faqs",
+    description: "Can create, edit, reorder, toggle, and delete FAQs",
+  },
 ];
 
 // Roles that receive each permission
 const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
-  ADMIN: ["MANAGE_BLOGS"],
+  ADMIN: ["MANAGE_BLOGS", "MANAGE_FAQS"],
   MENTOR: [],
   STUDENT: [],
 };

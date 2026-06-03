@@ -36,6 +36,9 @@ export const Permissions = {
   // Blogs (1)
   MANAGE_BLOGS: "MANAGE_BLOGS",
 
+  // FAQs (1)
+  MANAGE_FAQS: "MANAGE_FAQS",
+
   // User Management (5)
   MANAGE_USERS: "MANAGE_USERS",
   VIEW_USERS: "VIEW_USERS",

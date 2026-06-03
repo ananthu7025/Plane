@@ -207,3 +207,10 @@ export class BlogContentTooLongError extends AppError {
     super(400, "BLOG_CONTENT_TOO_LONG", message);
   }
 }
+
+// FAQ Module Errors
+export class FAQNotFoundError extends AppError {
+  constructor(message: string = "FAQ not found") {
+    super(404, "FAQ_NOT_FOUND", message);
+  }
+}

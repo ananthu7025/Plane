@@ -127,6 +127,18 @@ export const BLOGS_ENDPOINTS = {
   RECORD_VIEW: (blogId: number) => `/api/blogs/${blogId}/view`,
 } as const;
 
+export const FAQ_ENDPOINTS = {
+  // Public
+  GET_PUBLIC_FAQS: '/api/faqs',
+  // Admin
+  GET_ADMIN_FAQS:  '/api/faqs/admin',
+  CREATE_FAQ:      '/api/faqs/admin',
+  UPDATE_FAQ:      (id: number) => `/api/faqs/admin/${id}`,
+  DELETE_FAQ:      (id: number) => `/api/faqs/admin/${id}`,
+  TOGGLE_FAQ:      (id: number) => `/api/faqs/admin/${id}/toggle`,
+  REORDER_FAQS:    '/api/faqs/admin/reorder',
+} as const;
+
 // Route Paths
 export const ROUTES = {
   HOME: '/',

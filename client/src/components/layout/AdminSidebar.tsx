@@ -13,6 +13,7 @@ import {
   FileCheck,
   FileText,
   BookOpen,
+  HelpCircle,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { signOut } from "@/store/slices/authSlice";
@@ -44,6 +45,12 @@ const navGroups = [
       { icon: BookOpen, label: "Blogs", path: "/admin/blogs" },
       { icon: FileCheck, label: "Letters", path: "/admin/letters" },
       { icon: FileText, label: "Newsletters", path: "/admin/newsletters" },
+    ],
+  },
+  {
+    label: "Website",
+    items: [
+      { icon: HelpCircle, label: "FAQs", path: "/admin/faqs" },
     ],
   },
 ];

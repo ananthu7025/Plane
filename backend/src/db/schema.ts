@@ -490,6 +490,27 @@ export const emailQueue = pgTable(
   })
 );
 
+export const faqs = pgTable(
+  "faqs",
+  {
+    id:        integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    question:  text("question").notNull(),
+    answer:    text("answer").notNull(),
+    category:  varchar("category", { length: 50 }).notNull().default("General"),
+    order:     integer("order").notNull().default(0),
+    isActive:  boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => ({
+    isActiveIdx: index("faqs_is_active_idx").on(table.isActive),
+    orderIdx:    index("faqs_order_idx").on(table.order),
+    categoryIdx: index("faqs_category_idx").on(table.category),
+  })
+);
+
 // Relations
 export const rolesRelations = relations(roles, ({ many }) => ({
   rolePermissions: many(rolePermissions),

@@ -21,6 +21,7 @@ import AdminLetters from "@/pages/admin/AdminLetters";
 import Newsletters from "@/pages/student/Newsletters";
 import AdminNewsletters from "@/pages/admin/AdminNewsletters";
 import AdminBlogs from "@/pages/admin/AdminBlogs";
+import AdminFAQs from "@/pages/admin/AdminFAQs";
 import StudentBlogs from "@/pages/student/StudentBlogs";
 import StudentProfile from "@/pages/student/StudentProfile";
 
@@ -147,6 +148,10 @@ export const adminRoutes: RouteConfig[] = [
       {
         path: "blogs",
         element: <AdminBlogs />,
+      },
+      {
+        path: "faqs",
+        element: <AdminFAQs />,
       },
     ],
   },
