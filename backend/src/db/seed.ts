@@ -91,8 +91,20 @@ async function seed() {
         { name: "MANAGE_PERMISSIONS", module: "system", description: "Can assign permissions to roles" },
         { name: "MANAGE_SETTINGS", module: "system", description: "Can edit platform settings" },
         { name: "VIEW_LOGS", module: "system", description: "Can view system logs and audit trail" },
+
+        // Blogs (1 permission)
+        { name: "MANAGE_BLOGS", module: "blogs", description: "Can create/edit/delete blog posts" },
+
+        // Feedback (1 permission)
+        { name: "MANAGE_FEEDBACK", module: "feedback", description: "Can view and respond to student feedback" },
+
+        // FAQs (1 permission)
+        { name: "MANAGE_FAQS", module: "faqs", description: "Can create/edit/delete FAQ entries" },
+
+        // Mentorship (1 permission)
+        { name: "MANAGE_MENTORSHIP", module: "mentorship", description: "Manage mentorship requests and sessions" },
       ]);
-      console.log("✓ Permissions created (30 total)");
+      console.log("✓ Permissions created (34 total)");
     } else {
       console.log(`✓ Permissions already exist (${existingPerms.length} found)`);
     }

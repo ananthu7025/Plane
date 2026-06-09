@@ -62,6 +62,9 @@ export const Permissions = {
   MANAGE_PERMISSIONS: "MANAGE_PERMISSIONS",
   MANAGE_SETTINGS: "MANAGE_SETTINGS",
   VIEW_LOGS: "VIEW_LOGS",
+
+  // Mentorship (1)
+  MANAGE_MENTORSHIP: "MANAGE_MENTORSHIP",
 } as const;
 
 export type Permission = typeof Permissions[keyof typeof Permissions];

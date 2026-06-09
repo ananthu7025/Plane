@@ -9,6 +9,7 @@ import newsletterReducer from "./slices/newsletterSlice";
 import blogReducer from "./slices/blogSlice";
 import faqReducer from "./slices/faqSlice";
 import feedbackReducer from "./slices/feedbackSlice";
+import mentorshipReducer from "./slices/mentorshipSlice";
 import { setStore as setAxiosStore } from "@/api/client";
 
 /**
@@ -80,6 +81,7 @@ export const store = configureStore({
     blogs: blogReducer,
     faqs: faqReducer,
     feedback: feedbackReducer,
+    mentorship: mentorshipReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

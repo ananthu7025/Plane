@@ -24,6 +24,24 @@ export const feedbackCategoryEnum = pgEnum("feedback_category", ["GENERAL", "BUG
 export const flagStatusEnum = pgEnum("flag_status", ["NEW", "REVIEWED", "APPROVED", "REJECTED"]);
 export const tokenTypeEnum = pgEnum("token_type", ["ACCESS", "REFRESH", "PASSWORD_RESET", "OTP"]);
 export const mediaTypeEnum = pgEnum("media_type", ["AVATAR", "COVER_IMAGE", "POST_IMAGE", "ATTACHMENT", "DOCUMENT"]);
+export const mentorshipTopicEnum = pgEnum("mentorship_topic", [
+  "AIR_NAVIGATION",
+  "FLIGHT_PLANNING",
+  "METEOROLOGY",
+  "AIRCRAFT_SYSTEMS",
+  "ATPL_PREPARATION",
+  "CPL_PREPARATION",
+  "CAREER_GUIDANCE",
+  "GENERAL_DOUBT_CLEARING",
+]);
+export const mentorshipStatusEnum = pgEnum("mentorship_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "RESCHEDULED",
+  "COMPLETED",
+  "CANCELLED",
+]);
 
 // Tables
 export const roles = pgTable(
@@ -787,6 +805,62 @@ export const blogViewsRelations = relations(blogViews, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ── Mentorship ──────────────────────────────────────────────────────────────
+
+export const mentorshipRequests = pgTable(
+  "mentorship_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reviewedBy: uuid("reviewed_by").references(() => users.id),
+
+    topic: mentorshipTopicEnum("topic").notNull(),
+    description: text("description").notNull(),
+    preferredDateTime: timestamp("preferred_date_time").notNull(),
+
+    status: mentorshipStatusEnum("status").notNull().default("PENDING"),
+
+    // Admin action fields
+    rejectionReason: text("rejection_reason"),
+    rescheduledDateTime: timestamp("rescheduled_date_time"),
+
+    // Teams meeting details — populated on approval
+    teamsMeetingId: text("teams_meeting_id"),
+    teamsJoinUrl: text("teams_join_url"),
+    meetingStartDateTime: timestamp("meeting_start_date_time"),
+    meetingEndDateTime: timestamp("meeting_end_date_time"),
+
+    // Reminder tracking — prevents duplicate sends
+    reminder24hSent: boolean("reminder_24h_sent").notNull().default(false),
+    reminder1hSent: boolean("reminder_1h_sent").notNull().default(false),
+    reminder15mSent: boolean("reminder_15m_sent").notNull().default(false),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    mentorshipStudentIdx: index("mentorship_student_id_idx").on(table.studentId),
+    mentorshipStatusIdx:  index("mentorship_status_idx").on(table.status),
+    mentorshipDateIdx:    index("mentorship_preferred_date_idx").on(table.preferredDateTime),
+  })
+);
+
+export const mentorshipRequestsRelations = relations(
+  mentorshipRequests,
+  ({ one }) => ({
+    student: one(users, {
+      fields: [mentorshipRequests.studentId],
+      references: [users.id],
+    }),
+    reviewer: one(users, {
+      fields: [mentorshipRequests.reviewedBy],
+      references: [users.id],
+    }),
+  })
+);
 
 // Types
 export type Blog = typeof blogs.$inferSelect;

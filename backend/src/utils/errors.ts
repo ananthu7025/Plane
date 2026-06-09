@@ -227,3 +227,22 @@ export class FAQNotFoundError extends AppError {
     super(404, "FAQ_NOT_FOUND", message);
   }
 }
+
+// Mentorship Module Errors
+export class MentorshipNotFoundError extends AppError {
+  constructor(message: string = "Mentorship request not found") {
+    super(404, "MENTORSHIP_NOT_FOUND", message);
+  }
+}
+
+export class InvalidMentorshipStatusError extends AppError {
+  constructor(message: string) {
+    super(400, "INVALID_MENTORSHIP_STATUS", message);
+  }
+}
+
+export class TeamsMeetingCreationError extends AppError {
+  constructor(message: string = "Failed to create Microsoft Teams meeting") {
+    super(502, "TEAMS_MEETING_CREATION_ERROR", message);
+  }
+}

@@ -16,9 +16,11 @@ import newsletterRoutes from "./api/routes/newsletters.js";
 import blogRoutes from "./api/routes/blogs.js";
 import faqRoutes from "./api/routes/faqs.js";
 import feedbackRoutes from "./api/routes/feedback.js";
+import mentorshipRoutes from "./api/routes/mentorship.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { rateLimit, getRateLimitStats } from "./middleware/rateLimit.js";
 import { startEmailProcessor, getEmailQueueStatus } from "./utils/emailService.js";
+import { startMentorshipReminder } from "./utils/mentorshipReminder.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -134,6 +136,7 @@ app.use("/api/letters", letterRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/faqs", faqRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/mentorship", mentorshipRoutes);
 
 // ========== 404 Handler ==========
 app.use("*", (req, res) => {
@@ -165,6 +168,12 @@ try {
       startEmailProcessor();
     } catch (emailError) {
       logger.warn("Failed to start email processor, continuing without it", "SERVER");
+    }
+
+    try {
+      startMentorshipReminder();
+    } catch (reminderError) {
+      logger.warn("Failed to start mentorship reminder service, continuing without it", "SERVER");
     }
 
     logger.info(`Environment: ${process.env.NODE_ENV || "development"}`, "SERVER");

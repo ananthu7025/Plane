@@ -148,8 +148,7 @@ export default function AdminLetters() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="space-y-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Letters Moderation</h1>
@@ -401,7 +400,6 @@ export default function AdminLetters() {
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeleteConfirmation({ open: false, letterId: null })}
         />
-      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   FileText,
   BookOpen,
   HelpCircle,
+  CalendarCheck,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { signOut } from "@/store/slices/authSlice";
@@ -56,7 +57,8 @@ const navGroups = [
   {
     label: "Business",
     items: [
-      { icon: MessageSquare, label: "Feedback", path: "/admin/feedback" },
+      { icon: MessageSquare,  label: "Feedback",    path: "/admin/feedback" },
+      { icon: CalendarCheck,  label: "Mentorship",  path: "/admin/mentorship" },
     ],
   },
 ];

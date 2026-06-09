@@ -266,8 +266,7 @@ export default function AdminNewsletters() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -645,7 +644,6 @@ export default function AdminNewsletters() {
             </Button>
           </div>
         )}
-      </div>
 
       {/* Edit Dialog */}
       {isEditOpen && editingId && (

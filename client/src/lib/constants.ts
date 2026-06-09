@@ -138,6 +138,21 @@ export const FEEDBACK_ENDPOINTS = {
   RESPOND:    (id: number) => `/api/feedback/admin/${id}/respond`,
 } as const;
 
+export const MENTORSHIP_ENDPOINTS = {
+  // Student
+  SUBMIT:     '/api/mentorship',
+  GET_MY:     '/api/mentorship/my',
+  GET_MY_ONE: (id: string) => `/api/mentorship/my/${id}`,
+  // Admin
+  GET_ALL:    '/api/mentorship/admin',
+  GET_ONE:    (id: string) => `/api/mentorship/admin/${id}`,
+  APPROVE:        (id: string) => `/api/mentorship/admin/${id}/approve`,
+  REJECT:         (id: string) => `/api/mentorship/admin/${id}/reject`,
+  RESCHEDULE:     (id: string) => `/api/mentorship/admin/${id}/reschedule`,
+  CREATE_MEETING: (id: string) => `/api/mentorship/admin/${id}/create-meeting`,
+  DELETE:         (id: string) => `/api/mentorship/admin/${id}`,
+} as const;
+
 export const FAQ_ENDPOINTS = {
   // Public
   GET_PUBLIC_FAQS: '/api/faqs',
@@ -162,9 +177,11 @@ export const ROUTES = {
   STUDENT_DASHBOARD: '/student',
   STUDENT_BLOGS: '/student/blogs',
   STUDENT_BLOG_DETAIL: '/student/blogs/:blogId',
+  STUDENT_MENTORSHIP: '/student/mentorship',
   ADMIN_DASHBOARD: '/admin',
   ADMIN_USERS: '/admin/users',
   ADMIN_BLOGS: '/admin/blogs',
+  ADMIN_MENTORSHIP: '/admin/mentorship',
   NOT_FOUND: '*',
 } as const;
 
