@@ -79,7 +79,7 @@ export async function submitRequest(
       studentId,
       topic:             data.topic,
       description:       data.description,
-      preferredDateTime: slotDateTime,
+      preferredDateTime: new Date(data.preferredDateTime),
       status:            "PENDING",
       paymentStatus:     "PAID",
       razorpayOrderId:   data.razorpayOrderId,
