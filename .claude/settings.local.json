@@ -45,7 +45,12 @@
       "Bash(psql \"postgresql://root:root@localhost:5432/plane_and_prop\" -f \"src\\\\db\\\\migrations\\\\0001_slippery_gabe_jones.sql\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\AnanthapadmanabhanG\\\\Desktop\\\\New folder\\\\Plane\\\\backend\\\\src\" -Recurse -ErrorAction SilentlyContinue)",
       "Bash(ConvertTo-Csv -NoTypeInformation)",
-      "Bash(Out-String)"
+      "Bash(Out-String)",
+      "Bash(node --loader ts-node/esm -e ' *)",
+      "Bash(set PGPASSWORD=root)",
+      "Bash(psql -U root -d plane_and_prop -c \"DO $$ BEGIN CREATE TYPE mentorship_payment_status AS ENUM\\('PENDING_PAYMENT','PAID','PAYMENT_FAILED'\\); EXCEPTION WHEN duplicate_object THEN null; END $$;\")",
+      "Bash(PGPASSWORD=root psql -U root -d plane_and_prop)",
+      "Bash(PGPASSWORD=root psql -U root -d plane_and_prop -c \"SELECT * FROM drizzle.__drizzle_migrations ORDER BY created_at;\")"
     ]
   }
 }

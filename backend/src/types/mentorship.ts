@@ -16,6 +16,11 @@ export type MentorshipStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export type MentorshipPaymentStatus =
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "PAYMENT_FAILED";
+
 export interface MentorshipRequest {
   id: string;
   studentId: string;
@@ -31,6 +36,10 @@ export interface MentorshipRequest {
   teamsJoinUrl: string | null;
   meetingStartDateTime: Date | null;
   meetingEndDateTime: Date | null;
+  paymentStatus: MentorshipPaymentStatus;
+  razorpayOrderId: string | null;
+  razorpayPaymentId: string | null;
+  amountPaidPaise: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,11 +47,15 @@ export interface MentorshipRequest {
 export interface SubmitMentorshipInput {
   topic: MentorshipTopic;
   description: string;
-  preferredDateTime: string; // ISO 8601 string from client
+  preferredDateTime: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+  amountPaidPaise: number;
 }
 
 export interface ApproveMentorshipInput {
-  scheduledDateTime?: string; // Optional — falls back to preferredDateTime
+  scheduledDateTime?: string;
 }
 
 export interface RejectMentorshipInput {
@@ -50,7 +63,7 @@ export interface RejectMentorshipInput {
 }
 
 export interface RescheduleMentorshipInput {
-  rescheduledDateTime: string; // ISO 8601 string
+  rescheduledDateTime: string;
 }
 
 export interface MentorshipStats {
@@ -72,4 +85,62 @@ export interface TeamsOnlineMeeting {
   joinWebUrl: string;
   startDateTime: string;
   endDateTime: string;
+}
+
+// ── Slot Templates ────────────────────────────────────────────────────────────
+
+export interface SlotTemplate {
+  id: string;
+  dayOfWeek: number; // 0=Sun, 1=Mon, ..., 6=Sat
+  startTime: string; // "HH:MM"
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateSlotTemplateInput {
+  dayOfWeek: number;
+  startTime: string;
+}
+
+export interface CopySlotsInput {
+  fromDay: number;
+  toDays: number[];
+}
+
+export interface AvailableSlot {
+  startTime: string; // "HH:MM"
+  endTime: string;   // "HH:MM"
+  available: boolean;
+}
+
+// ── Payment ───────────────────────────────────────────────────────────────────
+
+export interface CreateOrderInput {
+  topic: MentorshipTopic;
+  description: string;
+  slotDateTime: string; // ISO 8601
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+}
+
+export interface VerifyPaymentInput {
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+  topic: MentorshipTopic;
+  description: string;
+  slotDateTime: string;
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+export interface MentorshipSettings {
+  sessionFeePaise: number;
+  sessionFeeFormatted: string;
 }

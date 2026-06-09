@@ -16,6 +16,11 @@ export type MentorshipStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export type MentorshipPaymentStatus =
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "PAYMENT_FAILED";
+
 export interface MentorshipRequest {
   id: string;
   studentId: string;
@@ -31,6 +36,10 @@ export interface MentorshipRequest {
   teamsJoinUrl: string | null;
   meetingStartDateTime: string | null;
   meetingEndDateTime: string | null;
+  paymentStatus: MentorshipPaymentStatus;
+  razorpayOrderId: string | null;
+  razorpayPaymentId: string | null;
+  amountPaidPaise: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,12 +49,6 @@ export interface MentorshipStats {
   pending: number;
   approved: number;
   completed: number;
-}
-
-export interface SubmitMentorshipInput {
-  topic: MentorshipTopic;
-  description: string;
-  preferredDateTime: string;
 }
 
 export interface ApproveMentorshipInput {
@@ -65,4 +68,53 @@ export interface AdminMentorshipFilters {
   limit?: number;
   status?: MentorshipStatus | "all";
   search?: string;
+}
+
+// ── Slot Templates ────────────────────────────────────────────────────────────
+
+export interface SlotTemplate {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AvailableSlot {
+  startTime: string;
+  endTime: string;
+  available: boolean;
+}
+
+// ── Payment ───────────────────────────────────────────────────────────────────
+
+export interface CreateOrderResult {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+}
+
+export interface VerifyPaymentInput {
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+  topic: MentorshipTopic;
+  description: string;
+  slotDateTime: string;
+  amountPaidPaise: number;
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+export interface MentorshipSettings {
+  sessionFeePaise: number;
+  sessionFeeFormatted: string;
+}
+
+export interface SlotsForDateResponse {
+  slots: AvailableSlot[];
+  sessionFeePaise: number;
+  sessionFeeFormatted: string;
 }

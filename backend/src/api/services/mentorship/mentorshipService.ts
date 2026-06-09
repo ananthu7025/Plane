@@ -7,6 +7,8 @@ import {
   InvalidMentorshipStatusError,
 } from "../../../utils/errors.js";
 import { createTeamsMeeting } from "./teamsService.js";
+import { verifySignature } from "./paymentService.js";
+import { validateSlotAvailable } from "./slotService.js";
 import type {
   MentorshipRequest,
   SubmitMentorshipInput,
@@ -33,6 +35,10 @@ const requestSelector = {
   teamsJoinUrl:         mentorshipRequests.teamsJoinUrl,
   meetingStartDateTime: mentorshipRequests.meetingStartDateTime,
   meetingEndDateTime:   mentorshipRequests.meetingEndDateTime,
+  paymentStatus:        mentorshipRequests.paymentStatus,
+  razorpayOrderId:      mentorshipRequests.razorpayOrderId,
+  razorpayPaymentId:    mentorshipRequests.razorpayPaymentId,
+  amountPaidPaise:      mentorshipRequests.amountPaidPaise,
   createdAt:            mentorshipRequests.createdAt,
   updatedAt:            mentorshipRequests.updatedAt,
 };
@@ -56,20 +62,30 @@ export async function findById(id: string): Promise<MentorshipRequest> {
 }
 
 /**
- * Submit a new mentorship session request
+ * Submit a new mentorship session request (after successful Razorpay payment)
  */
 export async function submitRequest(
   studentId: string,
   data: SubmitMentorshipInput
 ): Promise<MentorshipRequest> {
+  // Verify Razorpay signature before creating the request
+  verifySignature(data.razorpayOrderId, data.razorpayPaymentId, data.razorpaySignature);
+
+  const slotDateTime = new Date(data.preferredDateTime);
+  await validateSlotAvailable(slotDateTime);
+
   const [row] = await db
     .insert(mentorshipRequests)
     .values({
       studentId,
       topic:             data.topic,
       description:       data.description,
-      preferredDateTime: new Date(data.preferredDateTime),
+      preferredDateTime: slotDateTime,
       status:            "PENDING",
+      paymentStatus:     "PAID",
+      razorpayOrderId:   data.razorpayOrderId,
+      razorpayPaymentId: data.razorpayPaymentId,
+      amountPaidPaise:   data.amountPaidPaise,
       createdAt:         new Date(),
       updatedAt:         new Date(),
     })

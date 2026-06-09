@@ -139,18 +139,28 @@ export const FEEDBACK_ENDPOINTS = {
 } as const;
 
 export const MENTORSHIP_ENDPOINTS = {
-  // Student
-  SUBMIT:     '/api/mentorship',
-  GET_MY:     '/api/mentorship/my',
-  GET_MY_ONE: (id: string) => `/api/mentorship/my/${id}`,
-  // Admin
-  GET_ALL:    '/api/mentorship/admin',
-  GET_ONE:    (id: string) => `/api/mentorship/admin/${id}`,
+  // Student — availability + payment
+  GET_SLOTS:      '/api/mentorship/slots',
+  GET_SETTINGS:   '/api/mentorship/settings',
+  CREATE_ORDER:   '/api/mentorship/payment/create-order',
+  VERIFY_PAYMENT: '/api/mentorship/payment/verify',
+  GET_MY:         '/api/mentorship/my',
+  GET_MY_ONE:     (id: string) => `/api/mentorship/my/${id}`,
+  // Admin — requests
+  GET_ALL:        '/api/mentorship/admin',
+  GET_ONE:        (id: string) => `/api/mentorship/admin/${id}`,
   APPROVE:        (id: string) => `/api/mentorship/admin/${id}/approve`,
   REJECT:         (id: string) => `/api/mentorship/admin/${id}/reject`,
   RESCHEDULE:     (id: string) => `/api/mentorship/admin/${id}/reschedule`,
   CREATE_MEETING: (id: string) => `/api/mentorship/admin/${id}/create-meeting`,
   DELETE:         (id: string) => `/api/mentorship/admin/${id}`,
+  // Admin — slots
+  ADMIN_SLOTS:        '/api/mentorship/admin/slots',
+  ADMIN_SLOTS_COPY:   '/api/mentorship/admin/slots/copy',
+  ADMIN_SLOT_DELETE:  (id: string) => `/api/mentorship/admin/slots/${id}`,
+  ADMIN_SLOT_TOGGLE:  (id: string) => `/api/mentorship/admin/slots/${id}/toggle`,
+  // Admin — settings
+  ADMIN_SETTINGS: '/api/mentorship/admin/settings',
 } as const;
 
 export const FAQ_ENDPOINTS = {

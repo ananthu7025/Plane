@@ -246,3 +246,21 @@ export class TeamsMeetingCreationError extends AppError {
     super(502, "TEAMS_MEETING_CREATION_ERROR", message);
   }
 }
+
+export class PaymentVerificationError extends AppError {
+  constructor(message: string = "Payment verification failed") {
+    super(400, "PAYMENT_VERIFICATION_FAILED", message);
+  }
+}
+
+export class SlotNotAvailableError extends AppError {
+  constructor(message: string = "The selected time slot is not available") {
+    super(409, "SLOT_NOT_AVAILABLE", message);
+  }
+}
+
+export class SlotNotFoundError extends AppError {
+  constructor(message: string = "Slot template not found") {
+    super(404, "SLOT_NOT_FOUND", message);
+  }
+}

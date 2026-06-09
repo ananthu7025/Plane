@@ -24,6 +24,12 @@ export const feedbackCategoryEnum = pgEnum("feedback_category", ["GENERAL", "BUG
 export const flagStatusEnum = pgEnum("flag_status", ["NEW", "REVIEWED", "APPROVED", "REJECTED"]);
 export const tokenTypeEnum = pgEnum("token_type", ["ACCESS", "REFRESH", "PASSWORD_RESET", "OTP"]);
 export const mediaTypeEnum = pgEnum("media_type", ["AVATAR", "COVER_IMAGE", "POST_IMAGE", "ATTACHMENT", "DOCUMENT"]);
+export const mentorshipPaymentStatusEnum = pgEnum("mentorship_payment_status", [
+  "PENDING_PAYMENT",
+  "PAID",
+  "PAYMENT_FAILED",
+]);
+
 export const mentorshipTopicEnum = pgEnum("mentorship_topic", [
   "AIR_NAVIGATION",
   "FLIGHT_PLANNING",
@@ -833,6 +839,12 @@ export const mentorshipRequests = pgTable(
     meetingStartDateTime: timestamp("meeting_start_date_time"),
     meetingEndDateTime: timestamp("meeting_end_date_time"),
 
+    // Payment fields — populated after Razorpay checkout
+    paymentStatus: mentorshipPaymentStatusEnum("payment_status").notNull().default("PENDING_PAYMENT"),
+    razorpayOrderId: text("razorpay_order_id").unique(),
+    razorpayPaymentId: text("razorpay_payment_id"),
+    amountPaidPaise: integer("amount_paid_paise"),
+
     // Reminder tracking — prevents duplicate sends
     reminder24hSent: boolean("reminder_24h_sent").notNull().default(false),
     reminder1hSent: boolean("reminder_1h_sent").notNull().default(false),
@@ -857,6 +869,36 @@ export const mentorshipRequestsRelations = relations(
     }),
     reviewer: one(users, {
       fields: [mentorshipRequests.reviewedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+// ── Mentorship Slot Templates (recurring weekly availability) ─────────────────
+
+export const mentorshipSlotTemplates = pgTable(
+  "mentorship_slot_templates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    dayOfWeek: integer("day_of_week").notNull(), // 0=Sun, 1=Mon, ..., 6=Sat
+    startTime: varchar("start_time", { length: 5 }).notNull(), // "HH:MM" 24h format
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    dayOfWeekIdx:     index("slot_templates_day_idx").on(table.dayOfWeek),
+    isActiveIdx:      index("slot_templates_active_idx").on(table.isActive),
+    uniqueSlot:       uniqueIndex("slot_templates_unique_idx").on(table.dayOfWeek, table.startTime),
+  })
+);
+
+export const mentorshipSlotTemplatesRelations = relations(
+  mentorshipSlotTemplates,
+  ({ one }) => ({
+    createdByUser: one(users, {
+      fields: [mentorshipSlotTemplates.createdBy],
       references: [users.id],
     }),
   })

@@ -1,16 +1,31 @@
 /**
  * Mentorship Routes
- * Student: POST /api/mentorship
- *          GET  /api/mentorship/my
- *          GET  /api/mentorship/my/:id
- * Admin:   GET  /api/mentorship/admin         (MANAGE_MENTORSHIP)
- *          GET  /api/mentorship/admin/:id      (MANAGE_MENTORSHIP)
- *          PATCH /api/mentorship/admin/:id/approve
- *          PATCH /api/mentorship/admin/:id/reject
- *          PATCH /api/mentorship/admin/:id/reschedule
  *
- * NOTE: /admin routes must be declared BEFORE /my/:id to avoid Express
- * matching "admin" as a dynamic :id parameter.
+ * Public (authenticated student):
+ *   GET    /api/mentorship/slots                 — available slots for a date
+ *   GET    /api/mentorship/settings              — session fee
+ *   POST   /api/mentorship/payment/create-order  — create Razorpay order
+ *   POST   /api/mentorship/payment/verify        — verify payment + create booking
+ *   GET    /api/mentorship/my                    — own requests + stats
+ *   GET    /api/mentorship/my/:id                — single own request
+ *
+ * Admin (MANAGE_MENTORSHIP):
+ *   GET    /api/mentorship/admin                       — all requests
+ *   GET    /api/mentorship/admin/:id                   — single request
+ *   PATCH  /api/mentorship/admin/:id/approve           — approve
+ *   PATCH  /api/mentorship/admin/:id/reject            — reject
+ *   PATCH  /api/mentorship/admin/:id/reschedule        — reschedule
+ *   DELETE /api/mentorship/admin/:id                   — delete
+ *   POST   /api/mentorship/admin/:id/create-meeting    — retry Teams meeting
+ *   GET    /api/mentorship/admin/slots                 — all slot templates
+ *   POST   /api/mentorship/admin/slots                 — create slot template
+ *   DELETE /api/mentorship/admin/slots/:id             — delete slot template
+ *   PATCH  /api/mentorship/admin/slots/:id/toggle      — toggle active
+ *   POST   /api/mentorship/admin/slots/copy            — copy slots to other days
+ *   PATCH  /api/mentorship/admin/settings              — update session fee
+ *
+ * NOTE: Specifc /admin/* paths must be declared BEFORE /admin/:id to avoid
+ * Express matching "slots" or "settings" as a dynamic :id parameter.
  */
 
 import { Router } from "express";
@@ -21,47 +36,82 @@ import { Permissions } from "../../lib/permissions.js";
 import { mentorshipSchemas } from "../../validation/mentorship.js";
 import * as studentController from "../controllers/mentorship/studentMentorshipController.js";
 import * as adminController   from "../controllers/mentorship/adminMentorshipController.js";
+import * as slotController    from "../controllers/mentorship/slotController.js";
+import * as paymentController from "../controllers/mentorship/paymentController.js";
+
 const router = Router();
 
-// ── Student ───────────────────────────────────────────────────────────────────
+// ── Public / Student ──────────────────────────────────────────────────────────
 
-/**
- * Submit a new mentorship request
- * POST /api/mentorship
- */
+router.get("/slots",    authMiddleware, slotController.getAvailableSlots);
+router.get("/settings", authMiddleware, slotController.getSettings);
+
 router.post(
-  "/",
+  "/payment/create-order",
   authMiddleware,
-  validate(mentorshipSchemas.submit),
-  studentController.submitRequest
+  paymentController.createOrder
 );
 
-/**
- * Get own requests and stats
- * GET /api/mentorship/my
- */
+router.post(
+  "/payment/verify",
+  authMiddleware,
+  paymentController.verifyAndBook
+);
+
+router.get("/my",     authMiddleware, studentController.getMyRequests);
+router.get("/my/:id", authMiddleware, studentController.getRequestById);
+
+// ── Admin — Slot Management (must be before /admin/:id) ───────────────────────
+
 router.get(
-  "/my",
+  "/admin/slots",
   authMiddleware,
-  studentController.getMyRequests
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  slotController.getAllSlots
 );
 
-/**
- * Get a single own request
- * GET /api/mentorship/my/:id
- */
-router.get(
-  "/my/:id",
+router.post(
+  "/admin/slots",
   authMiddleware,
-  studentController.getRequestById
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  validate(mentorshipSchemas.createSlot),
+  slotController.createSlot
 );
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
+router.post(
+  "/admin/slots/copy",
+  authMiddleware,
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  validate(mentorshipSchemas.copySlots),
+  slotController.copySlots
+);
 
-/**
- * List all requests with filters (must be before /admin/:id)
- * GET /api/mentorship/admin
- */
+router.delete(
+  "/admin/slots/:id",
+  authMiddleware,
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  slotController.deleteSlot
+);
+
+router.patch(
+  "/admin/slots/:id/toggle",
+  authMiddleware,
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  slotController.toggleSlot
+);
+
+// ── Admin — Settings ──────────────────────────────────────────────────────────
+
+router.patch(
+  "/admin/settings",
+  authMiddleware,
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  validate(mentorshipSchemas.updateSettings),
+  slotController.updateSettings
+);
+
+// ── Admin — Requests ──────────────────────────────────────────────────────────
+
 router.get(
   "/admin",
   authMiddleware,
@@ -70,10 +120,6 @@ router.get(
   adminController.getAllRequests
 );
 
-/**
- * Get single request detail
- * GET /api/mentorship/admin/:id
- */
 router.get(
   "/admin/:id",
   authMiddleware,
@@ -81,10 +127,6 @@ router.get(
   adminController.getRequestById
 );
 
-/**
- * Approve request and create Teams meeting
- * PATCH /api/mentorship/admin/:id/approve
- */
 router.patch(
   "/admin/:id/approve",
   authMiddleware,
@@ -93,10 +135,6 @@ router.patch(
   adminController.approveRequest
 );
 
-/**
- * Reject request with reason
- * PATCH /api/mentorship/admin/:id/reject
- */
 router.patch(
   "/admin/:id/reject",
   authMiddleware,
@@ -105,10 +143,14 @@ router.patch(
   adminController.rejectRequest
 );
 
-/**
- * Delete a mentorship request
- * DELETE /api/mentorship/admin/:id
- */
+router.patch(
+  "/admin/:id/reschedule",
+  authMiddleware,
+  requirePermission(Permissions.MANAGE_MENTORSHIP),
+  validate(mentorshipSchemas.reschedule),
+  adminController.rescheduleRequest
+);
+
 router.delete(
   "/admin/:id",
   authMiddleware,
@@ -116,27 +158,11 @@ router.delete(
   adminController.deleteRequest
 );
 
-/**
- * Retry Teams meeting creation for an approved request with no meeting link
- * POST /api/mentorship/admin/:id/create-meeting
- */
 router.post(
   "/admin/:id/create-meeting",
   authMiddleware,
   requirePermission(Permissions.MANAGE_MENTORSHIP),
   adminController.retryCreateMeeting
-);
-
-/**
- * Reschedule request to a new datetime
- * PATCH /api/mentorship/admin/:id/reschedule
- */
-router.patch(
-  "/admin/:id/reschedule",
-  authMiddleware,
-  requirePermission(Permissions.MANAGE_MENTORSHIP),
-  validate(mentorshipSchemas.reschedule),
-  adminController.rescheduleRequest
 );
 
 export default router;
