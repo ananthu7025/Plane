@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   User,
   BookOpen,
-  MessageSquare,
   XCircle,
 } from "lucide-react";
 import type { MentorshipRequest } from "@/types/mentorship";
