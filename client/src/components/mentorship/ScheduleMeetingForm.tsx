@@ -74,7 +74,7 @@ export function ScheduleMeetingForm({ onSuccess, onCancel }: ScheduleMeetingForm
     if (!settings) return;
 
     setPaymentLoading(true);
-    const slotDateTime = new Date(`${values.date}T${selectedSlot.startTime}:00`).toISOString();
+    const slotDateTime = `${values.date}T${selectedSlot.startTime}:00`;
 
     try {
       await loadRazorpayScript();

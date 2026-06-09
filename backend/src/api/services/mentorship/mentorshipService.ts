@@ -71,8 +71,7 @@ export async function submitRequest(
   // Verify Razorpay signature before creating the request
   verifySignature(data.razorpayOrderId, data.razorpayPaymentId, data.razorpaySignature);
 
-  const slotDateTime = new Date(data.preferredDateTime);
-  await validateSlotAvailable(slotDateTime);
+  await validateSlotAvailable(data.preferredDateTime);
 
   const [row] = await db
     .insert(mentorshipRequests)

@@ -180,11 +180,14 @@ export async function getAvailableSlotsForDate(dateStr: string): Promise<Availab
   }));
 }
 
-export async function validateSlotAvailable(slotDateTime: Date): Promise<void> {
-  const dayOfWeek = slotDateTime.getDay();
-  const hours     = String(slotDateTime.getHours()).padStart(2, "0");
-  const minutes   = String(slotDateTime.getMinutes()).padStart(2, "0");
-  const startTime = `${hours}:${minutes}`;
+export async function validateSlotAvailable(slotDateTimeStr: string): Promise<void> {
+  // Parse the wall-clock string "YYYY-MM-DDTHH:MM:SS" directly to avoid server timezone issues
+  const [datePart, timePart] = slotDateTimeStr.split("T");
+  const startTime = (timePart ?? "").substring(0, 5); // "06:00"
+
+  const [year, month, day] = (datePart ?? "").split("-").map(Number);
+  // Use UTC noon so date boundary never shifts regardless of server timezone
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getUTCDay();
 
   const [template] = await db
     .select({ id: mentorshipSlotTemplates.id })
@@ -201,19 +204,13 @@ export async function validateSlotAvailable(slotDateTime: Date): Promise<void> {
     throw new SlotNotAvailableError("No active slot template found for this time");
   }
 
-  // Check if already booked
-  const dateStart = new Date(slotDateTime);
-  dateStart.setSeconds(0, 0);
-  const dateEnd = new Date(slotDateTime);
-  dateEnd.setSeconds(59, 999);
-
+  // Check if already booked — compare against stored wall-clock datetime string
   const [existing] = await db
     .select({ id: mentorshipRequests.id })
     .from(mentorshipRequests)
     .where(
       and(
-        sql`${mentorshipRequests.preferredDateTime} >= ${dateStart}`,
-        sql`${mentorshipRequests.preferredDateTime} <= ${dateEnd}`,
+        sql`to_char(${mentorshipRequests.preferredDateTime}, 'YYYY-MM-DD"T"HH24:MI') = ${`${datePart}T${startTime}`}`,
         inArray(mentorshipRequests.status, ["PENDING", "APPROVED"])
       )
     );
